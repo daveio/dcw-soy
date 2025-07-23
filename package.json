@@ -4,9 +4,9 @@
   "description": "dcw.soy static site",
   "main": "src/index.js",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "preview": "wrangler dev --remote"
+    "deploy": "bun run wrangler deploy",
+    "dev": "bun run wrangler dev",
+    "preview": "bun run wrangler dev --remote"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250723.0",
