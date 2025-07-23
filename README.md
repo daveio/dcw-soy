@@ -1,15 +1,6 @@
 # dcw.soy
 
-A delightfully animated static site featuring a bouncing Kikkoman soy sauce bottle. Click the bottle to visit [dave.io](https://dave.io)!
-
-## 🥢 What is this?
-
-This is a fun, interactive static site deployed on Cloudflare Workers. It features:
-
-- An animated soy sauce bottle that bounces around the screen
-- Food emoji particles floating upward
-- Sparkle effects and trailing animations
-- A satisfying click animation that redirects to dave.io
+It's just soy sauce. Click the bottle to visit [dave.io](https://dave.io)!
 
 ## 🛠️ Development
 
@@ -17,8 +8,8 @@ This project uses **Bun** as the package manager and Cloudflare Workers for host
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (v1.2.19 or later)
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
+- [Bun](https://bun.sh) (v1.2.19 or later)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler)
 
 ### Getting Started
 
@@ -42,11 +33,11 @@ bun run deploy
 
 ## 🔧 Code Quality
 
-This project uses [Trunk](https://trunk.io/) for linting and formatting to maintain code quality.
+This project uses [Trunk](https://trunk.io) for linting and formatting to maintain code quality.
 
 ## 📂 Project Structure
 
-```
+```plaintext
 ├── src/
 │   └── index.js          # Cloudflare Worker entry point
 ├── static/
@@ -65,8 +56,4 @@ This project uses [Trunk](https://trunk.io/) for linting and formatting to maint
 
 ## 📝 License
 
-MIT - See the package.json for details.
-
----
-
-_Made with ❤️ and soy sauce by [Dave Williams](https://dave.io)_
+[MIT](LICENSE).
