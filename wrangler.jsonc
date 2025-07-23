@@ -1,0 +1,9 @@
+{
+  "name": "dcw-soy",
+  "main": "src/index.js",
+  "compatibility_date": "2025-07-22",
+  "assets": {
+    "directory": "static",
+    "binding": "ASSETS"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "dcw-soy",
+  "version": "1.0.0",
+  "description": "dcw.soy static site",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "preview": "wrangler dev --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250723.0",
+    "wrangler": "^4.25.1"
+  },
+  "keywords": ["cloudflare", "workers", "static-site"],
+  "author": {
+    "name": "Dave Williams",
+    "email": "dave@dave.io",
+    "url": "https://dave.io"
+  },
+  "license": "MIT",
+  "packageManager": "bun@1.2.19"
+}
