@@ -1,6 +1,8 @@
-# CLAUDE.md
+# CLAUDE.md / AGENTS.md / copilot-instructions.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+The master file is at `.github/copilot-instructions.md`. `CLAUDE.md` and `AGENTS.md` are symlinks to this file. You may edit any of them, just be aware that changing any one will change them all due to the symlink setup.
 
 ## Development Commands
 
