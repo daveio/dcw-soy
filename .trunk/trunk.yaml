@@ -17,6 +17,7 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   enabled:
+    - biome@1.9.4
     - markdownlint@0.45.0
     - checkov@3.2.452
     - git-diff-check
@@ -24,6 +25,13 @@ lint:
     - prettier@3.6.2
     - trufflehog@3.90.1
     - yamllint@1.37.1
+  ignore:
+    - linters:
+        - prettier
+      paths:
+        - "**/*.js"
+        - "**/*.json"
+        - "**/*.css"
 actions:
   enabled:
     - trunk-announce
