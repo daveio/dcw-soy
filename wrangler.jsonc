@@ -4,6 +4,6 @@
   "compatibility_date": "2025-07-22",
   "assets": {
     "directory": "static",
-    "binding": "ASSETS"
-  }
+    "binding": "ASSETS",
+  },
 }

@@ -12,7 +12,11 @@
     "@cloudflare/workers-types": "^4.20250723.0",
     "wrangler": "^4.25.1"
   },
-  "keywords": ["cloudflare", "workers", "static-site"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "static-site"
+  ],
   "author": {
     "name": "Dave Williams",
     "email": "dave@dave.io",

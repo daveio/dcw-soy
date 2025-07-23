@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -234,15 +234,24 @@
 
     <div class="trail" id="trail"></div>
 
-    <div class="soy-bottle" id="bottleContainer" role="button" tabindex="0" aria-label="Click to visit dave.io">
-      <img src="soy.webp" alt="Animated Kikkoman Soy Sauce bottle - click to visit dave.io" />
+    <div
+      class="soy-bottle"
+      id="bottleContainer"
+      role="button"
+      tabindex="0"
+      aria-label="Click to visit dave.io"
+    >
+      <img
+        src="soy.webp"
+        alt="Animated Kikkoman Soy Sauce bottle - click to visit dave.io"
+      />
     </div>
 
     <script>
       // Get bottle element
       const bottle = document.getElementById("bottleContainer");
       const trail = document.getElementById("trail");
-      const bottleImg = bottle.querySelector('img');
+      const bottleImg = bottle.querySelector("img");
       let animationId = null;
       let isAnimating = true;
 
@@ -337,9 +346,9 @@
       if (bottleImg.complete) {
         animate();
       } else {
-        bottleImg.addEventListener('load', animate);
-        bottleImg.addEventListener('error', () => {
-          console.error('Failed to load soy sauce bottle image');
+        bottleImg.addEventListener("load", animate);
+        bottleImg.addEventListener("error", () => {
+          console.error("Failed to load soy sauce bottle image");
         });
       }
 
@@ -350,27 +359,29 @@
         if (animationId) {
           cancelAnimationFrame(animationId);
         }
-        
+
         // Stop the normal animation and bouncing
         bottle.style.animation = "none";
-        
+
         // Force a reflow to ensure the animation stops
         void bottle.offsetWidth;
-        
+
         // Apply ludicrous growth animation
-        bottle.style.transition = "all 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+        bottle.style.transition =
+          "all 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
         bottle.style.position = "fixed";
         bottle.style.left = "50%";
         bottle.style.top = "50%";
-        bottle.style.transform = "translate(-50%, -50%) scale(10) rotate(720deg)";
+        bottle.style.transform =
+          "translate(-50%, -50%) scale(10) rotate(720deg)";
         bottle.style.zIndex = "9999";
-        
+
         // Redirect after animation
         setTimeout(() => {
           window.location.href = "https://dave.io";
         }, 1000);
       }
-      
+
       bottle.addEventListener("click", handleBottleClick);
       bottle.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -386,7 +397,7 @@
         x = Math.max(0, Math.min(x, window.innerWidth - scaledSize));
         y = Math.max(0, Math.min(y, window.innerHeight - scaledSize));
       });
-      
+
       // Cleanup on page unload
       window.addEventListener("beforeunload", () => {
         isAnimating = false;
