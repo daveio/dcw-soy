@@ -1,9 +1,22 @@
 {
-  "name": "dcw-soy",
-  "main": "src/index.js",
-  "compatibility_date": "2025-07-22",
   "assets": {
-    "directory": "static",
     "binding": "ASSETS",
+    "directory": "static",
   },
+  "compatibility_date": "2025-07-22",
+  "main": "src/index.js",
+  "name": "dcw-soy",
+  "observability": {
+    "enabled": true,
+  },
+  "placement": {
+    "mode": "smart",
+  },
+  "routes": [
+    {
+      "custom_domain": true,
+      "pattern": "dcw.soy",
+    },
+  ],
+  "workers_dev": false,
 }
