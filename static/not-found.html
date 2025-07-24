@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 - Lost in the Sauce</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        overflow: hidden;
+        position: relative;
+        font-family: -apple-system, system-ui, sans-serif;
+      }
+
+      .container {
+        text-align: center;
+        position: relative;
+        z-index: 10;
+      }
+
+      .spilled-bottle {
+        position: relative;
+        width: 150px;
+        height: auto;
+        margin: 0 auto 30px;
+        animation: wobble 3s ease-in-out infinite;
+        filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+      }
+
+      .spilled-bottle img {
+        width: 100%;
+        height: auto;
+        display: block;
+        transform: rotate(120deg);
+      }
+
+      .puddle {
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 180px;
+        height: 60px;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(139, 69, 19, 0.8) 0%,
+          rgba(139, 69, 19, 0) 70%
+        );
+        border-radius: 50%;
+        animation: spread 4s ease-in-out infinite;
+      }
+
+      @keyframes wobble {
+        0%,
+        100% {
+          transform: rotate(120deg) translateY(0);
+        }
+        25% {
+          transform: rotate(125deg) translateY(-10px);
+        }
+        75% {
+          transform: rotate(115deg) translateY(5px);
+        }
+      }
+
+      @keyframes spread {
+        0%,
+        100% {
+          transform: translateX(-50%) scale(1);
+        }
+        50% {
+          transform: translateX(-50%) scale(1.2);
+        }
+      }
+
+      h1 {
+        color: white;
+        font-size: 3rem;
+        margin: 0 0 20px;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+        animation: drip 2s ease-in-out infinite;
+      }
+
+      @keyframes drip {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(5px);
+        }
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.3rem;
+        margin: 0 0 30px;
+        max-width: 500px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .back-button {
+        display: inline-block;
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+
+      .back-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .emoji {
+        position: absolute;
+        font-size: 30px;
+        opacity: 0;
+        animation: float-up 8s linear infinite;
+      }
+
+      @keyframes float-up {
+        0% {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      .sad-emoji {
+        font-size: 100px;
+        margin: 20px 0;
+        animation: spin-sad 10s linear infinite;
+      }
+
+      @keyframes spin-sad {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="spilled-bottle">
+        <img src="/soy.webp" alt="Spilled soy sauce bottle" />
+        <div class="puddle"></div>
+      </div>
+      <h1>Soy Sorry</h1>
+      <p>This redirect doesn't exist. Try again?</p>
+      <a href="/" class="back-button">Go Home</a>
+    </div>
+
+    <script>
+      // Create floating emojis
+      const sadEmojis = ["😭", "💔", "🥺", "😢"];
+
+      function createEmoji() {
+        const emoji = document.createElement("div");
+        emoji.className = "emoji";
+        emoji.textContent =
+          sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
+        emoji.style.left = Math.random() * window.innerWidth + "px";
+        emoji.style.animationDelay = Math.random() * 8 + "s";
+        emoji.style.animationDuration = 8 + Math.random() * 4 + "s";
+        document.body.appendChild(emoji);
+
+        setTimeout(() => {
+          emoji.remove();
+        }, 12000);
+      }
+
+      // Create initial emojis
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => createEmoji(), i * 1000);
+      }
+
+      // Continue creating emojis
+      setInterval(createEmoji, 2000);
+
+      // Add click effect on the spilled bottle
+      const bottle = document.querySelector(".spilled-bottle");
+      bottle.addEventListener("click", () => {
+        bottle.style.animation = "none";
+        setTimeout(() => {
+          bottle.style.animation = "wobble 3s ease-in-out infinite";
+        }, 10);
+
+        // Create burst of emojis
+        for (let i = 0; i < 10; i++) {
+          setTimeout(() => createEmoji(), i * 100);
+        }
+      });
+    </script>
+  </body>
+</html>
