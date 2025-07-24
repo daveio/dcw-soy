@@ -17,6 +17,10 @@
       "custom_domain": true,
       "pattern": "dcw.soy",
     },
+    {
+      "custom_domain": true,
+      "pattern": "www.dcw.soy",
+    },
   ],
   "workers_dev": false,
 }
