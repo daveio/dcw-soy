@@ -1,0 +1,14 @@
+[env]
+DCW_SOY_MISE_ACTIVE = 'true'
+
+[settings]
+env_file = '.env'
+idiomatic_version_file = false
+idiomatic_version_file_enable_tools = []
+
+[tools]
+bun = { version = '1.2.19' }
+node = { version = '22.17.1' }
+
+[tasks]
+'claude' = { run = "bun x @anthropic-ai/claude-code", description = "Invoke Claude Code", alias = "cc" }
