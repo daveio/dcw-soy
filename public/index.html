@@ -234,17 +234,8 @@
 
     <div class="trail" id="trail"></div>
 
-    <div
-      class="soy-bottle"
-      id="bottleContainer"
-      role="button"
-      tabindex="0"
-      aria-label="Click to visit dave.io"
-    >
-      <img
-        src="soy.webp"
-        alt="Animated Kikkoman Soy Sauce bottle - click to visit dave.io"
-      />
+    <div class="soy-bottle" id="bottleContainer" role="button" tabindex="0" aria-label="Click to visit dave.io">
+      <img src="soy.webp" alt="Animated Kikkoman Soy Sauce bottle - click to visit dave.io" />
     </div>
 
     <script>
@@ -367,13 +358,11 @@
         void bottle.offsetWidth;
 
         // Apply ludicrous growth animation
-        bottle.style.transition =
-          "all 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+        bottle.style.transition = "all 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
         bottle.style.position = "fixed";
         bottle.style.left = "50%";
         bottle.style.top = "50%";
-        bottle.style.transform =
-          "translate(-50%, -50%) scale(10) rotate(720deg)";
+        bottle.style.transform = "translate(-50%, -50%) scale(10) rotate(720deg)";
         bottle.style.zIndex = "9999";
 
         // Redirect after animation

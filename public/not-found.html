@@ -51,11 +51,7 @@
         transform: translateX(-50%);
         width: 180px;
         height: 60px;
-        background: radial-gradient(
-          ellipse at center,
-          rgba(139, 69, 19, 0.8) 0%,
-          rgba(139, 69, 19, 0) 70%
-        );
+        background: radial-gradient(ellipse at center, rgba(139, 69, 19, 0.8) 0%, rgba(139, 69, 19, 0) 70%);
         border-radius: 50%;
         animation: spread 4s ease-in-out infinite;
       }
@@ -187,8 +183,7 @@
       function createEmoji() {
         const emoji = document.createElement("div");
         emoji.className = "emoji";
-        emoji.textContent =
-          sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
+        emoji.textContent = sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
         emoji.style.left = Math.random() * window.innerWidth + "px";
         emoji.style.animationDelay = Math.random() * 8 + "s";
         emoji.style.animationDuration = 8 + Math.random() * 4 + "s";
