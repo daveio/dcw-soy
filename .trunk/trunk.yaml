@@ -17,6 +17,7 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   enabled:
+    - taplo@0.9.3
     - actionlint@1.7.7
     - biome@1.9.4
     - markdownlint@0.45.0
@@ -33,6 +34,10 @@ lint:
         - "**/*.js"
         - "**/*.json"
         - "**/*.css"
+    - linters:
+        - ALL
+      paths:
+        - worker-configuration.d.ts
 actions:
   enabled:
     - trunk-announce
