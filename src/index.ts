@@ -4,6 +4,8 @@ export default {
     const { pathname }: { pathname: string } = url;
 
     // Serve static site for root paths
+    // we only have to handle the main path, asset URLs like the image are
+    // already handled through default routing to the assets binding
     if (pathname === "/" || pathname === "") {
       return env.ASSETS.fetch(request);
     }
