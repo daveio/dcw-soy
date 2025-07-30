@@ -2,7 +2,7 @@
 
 ## Root Directory Layout
 
-```
+```plaintext
 ├── src/                    # TypeScript source code
 │   └── index.ts           # Main Cloudflare Worker entry point
 ├── public/                # Static assets served via Assets binding
