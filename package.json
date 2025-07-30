@@ -16,8 +16,7 @@
         "cf-typegen": "bun run wrangler types",
         "deploy": "bun run wrangler deploy",
         "dev": "bun run wrangler dev",
-        "test": "bun run vitest",
-        "types": "bun run cf-typegen"
+        "postinstall": "bun run wrangler types"
     },
     "version": "0.1.0"
 }
