@@ -1,3 +1,15 @@
+// Constants for KV caching
+const KV_KEY = "redirects";
+const KV_LOCK_KEY = "redirects-lock";
+const CACHE_TTL = 3600; // 1 hour in seconds
+const REFRESH_LOCK_TTL = 300; // 5 minutes - prevents stuck locks
+
+// Interface for cached redirect data
+interface RedirectCache {
+  redirects: string[];
+  lastUpdated: string; // ISO 8601 timestamp
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url: URL = new URL(request.url);
@@ -10,48 +22,261 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    return await handleRedirect(request, env);
+    return await handleRedirect(request, env, ctx);
   },
 } satisfies ExportedHandler<Env>;
 
 /**
  * Handle redirect logic for non-root paths
  */
-async function handleRedirect(request: Request, env: Env): Promise<Response> {
+async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url: URL = new URL(request.url);
   const { pathname }: { pathname: string } = url;
 
-  // Check if the redirect exists at dave.io/go/{path}
+  // Extract the redirect path without leading slash
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname;
-  const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
 
+  // Get the list of valid redirects
+  const validRedirects: string[] | null = await getValidRedirects(env, ctx);
+
+  // If we can't determine valid redirects, redirect anyway and let dave.io handle it
+  if (validRedirects === null) {
+    const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
+    return Response.redirect(redirectUrl, 301);
+  }
+
+  // Check if the requested path is in the list of valid redirects
+  if (validRedirects.includes(redirectPath)) {
+    // Redirect to dave.io
+    const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
+    return Response.redirect(redirectUrl, 301);
+  }
+
+  // Path not found in valid redirects, serve the not-found page
+  return await serveNotFoundPage(request, env);
+}
+
+interface CloudflareHeaders {
+  "cf-connecting-ip": string;
+  "cf-ipcity": string;
+  "cf-ipcontinent": string;
+  "cf-ipcountry": string;
+  "cf-iplatitude": string;
+  "cf-iplongitude": string;
+  "cf-postal-code": string;
+  "cf-ray": string;
+  "cf-region": string;
+  "cf-region-code": string;
+  "cf-timezone": string;
+  "cf-visitor": string;
+}
+
+interface ForwardingHeaders {
+  "x-forwarded-proto": string;
+  "x-real-ip": string;
+}
+
+interface OtherHeaders {
+  accept: string;
+  "accept-encoding": string;
+  connection: string;
+  host: string;
+  "user-agent": string;
+}
+
+interface HeadersData {
+  cloudflare: CloudflareHeaders;
+  count: number;
+  forwarding: ForwardingHeaders;
+  other: OtherHeaders;
+}
+
+interface AuthData {
+  supplied: boolean;
+}
+
+interface CloudflarePingData {
+  connectingIP: string;
+  country: {
+    ip: string;
+    primary: string;
+  };
+  datacentre: string;
+  ray: string;
+  request: {
+    agent: string;
+    host: string;
+    method: string;
+    path: string;
+    proto: {
+      forward: string;
+      request: string;
+    };
+    version: string;
+  };
+}
+
+interface WorkerData {
+  edge_functions: boolean;
+  environment: string;
+  limits: {
+    cpu_time: string;
+    memory: string;
+    request_timeout: string;
+  };
+  preset: string;
+  runtime: string;
+  server_side_rendering: boolean;
+  version: string;
+}
+
+interface PingData {
+  cloudflare: CloudflarePingData;
+  redirects: string[];
+  worker: WorkerData;
+}
+
+interface PingResult {
+  auth: AuthData;
+  headers: HeadersData;
+  pingData: PingData;
+}
+
+interface PingApiResponse {
+  ok: boolean;
+  result: PingResult;
+  message: string;
+  error: null | string;
+  status: {
+    message: string;
+  };
+  timestamp: string;
+}
+
+/**
+ * Fetch the list of valid redirects from dave.io/api/ping
+ */
+async function fetchValidRedirects(): Promise<string[]> {
   try {
-    const checkResponse: Response = await checkRedirectExists(redirectUrl);
+    const response = await fetch("https://dave.io/api/ping", {
+      method: "GET",
+      headers: {
+        "User-Agent": "THERE IS NO USER AGENT. THERE IS ONLY SOY.",
+      },
+    });
 
-    // If it's a 404, serve our custom not-found page
-    if (checkResponse.status === 404) {
-      return await serveNotFoundPage(request, env);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch redirects: ${response.status}`);
     }
 
-    // Otherwise, redirect to dave.io
-    return Response.redirect(redirectUrl, 301);
+    const data: PingApiResponse = await response.json();
+    const redirects = data?.result?.pingData?.redirects;
+
+    if (!Array.isArray(redirects)) {
+      throw new Error("Invalid response format from ping endpoint");
+    }
+
+    // Validate that all elements are strings
+    if (!redirects.every((item) => typeof item === "string")) {
+      throw new Error("Invalid redirects format: expected array of strings");
+    }
+
+    return redirects;
   } catch (error) {
-    // If there's an error checking, serve the not-found page
-    return await serveNotFoundPage(request, env);
+    console.error("Error fetching valid redirects:", error);
+    return [];
   }
 }
 
 /**
- * Check if a redirect exists at the given URL
+ * Get the list of valid redirects with KV caching
  */
-async function checkRedirectExists(redirectUrl: string): Promise<Response> {
-  return await fetch(redirectUrl, {
-    method: "GET",
-    redirect: "manual",
-    headers: {
-      "User-Agent": "THERE IS NO USER AGENT. THERE IS ONLY SOY.",
-    },
+async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<string[] | null> {
+  try {
+    // Try to get from cache
+    const cached = (await env.KV.get(KV_KEY, "json")) as RedirectCache | null;
+
+    if (cached && cached.redirects) {
+      // Cache hit - return cached data immediately
+      // Schedule async refresh (non-blocking) only if no refresh is already in progress
+      ctx.waitUntil(refreshCacheWithLock(env));
+      return cached.redirects;
+    }
+
+    // Cache miss - fetch synchronously and update cache
+    const redirects = await fetchValidRedirects();
+    if (redirects.length > 0) {
+      await updateCache(env, redirects);
+      return redirects;
+    }
+
+    // Empty redirects array means something went wrong - redirect anyway
+    return null;
+  } catch (error) {
+    // On any error, return null to indicate "redirect anyway"
+    console.error("Error in getValidRedirects:", error);
+    return null;
+  }
+}
+
+/**
+ * Update the KV cache with new redirect data
+ */
+async function updateCache(env: Env, redirects: string[]): Promise<void> {
+  const cacheData: RedirectCache = {
+    redirects,
+    lastUpdated: new Date().toISOString(),
+  };
+  await env.KV.put(KV_KEY, JSON.stringify(cacheData), {
+    expirationTtl: CACHE_TTL,
   });
+}
+
+/**
+ * Refresh the cache asynchronously with locking to prevent race conditions
+ */
+async function refreshCacheWithLock(env: Env): Promise<void> {
+  try {
+    // Check if a refresh is already in progress
+    const lockExists = await env.KV.get(KV_LOCK_KEY);
+    if (lockExists !== null) {
+      // Another refresh is in progress, skip this one
+      return;
+    }
+
+    // Acquire the lock
+    await env.KV.put(KV_LOCK_KEY, new Date().toISOString(), {
+      expirationTtl: REFRESH_LOCK_TTL,
+    });
+
+    // Perform the refresh
+    await refreshCache(env);
+
+    // Release the lock
+    await env.KV.delete(KV_LOCK_KEY);
+  } catch (error) {
+    console.error("Error in refreshCacheWithLock:", error);
+    // Ensure lock is released even if refresh fails
+    try {
+      await env.KV.delete(KV_LOCK_KEY);
+    } catch (lockReleaseError) {
+      console.error("Error releasing refresh lock:", lockReleaseError);
+    }
+  }
+}
+
+/**
+ * Refresh the cache asynchronously (internal function)
+ */
+async function refreshCache(env: Env): Promise<void> {
+  try {
+    const redirects = await fetchValidRedirects();
+    if (redirects.length > 0) {
+      await updateCache(env, redirects);
+    }
+  } catch (error) {
+    console.error("Error refreshing cache:", error);
+  }
 }
 
 /**

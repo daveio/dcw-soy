@@ -51,7 +51,7 @@ This is a Cloudflare Workers static site project that serves an animated landing
 
 ### Important Notes
 
-- No TypeScript configuration - use plain JavaScript
+- Use TypeScript
 - No build process - source files are deployed directly
 - No test framework configured - add tests if implementing logic
 - Animation logic is in inline JavaScript within index.html
