@@ -62,7 +62,7 @@ async function fetchValidRedirects(): Promise<string[]> {
     }
 
     // Validate that all elements are strings
-    if (!redirects.every((item) => typeof item === 'string')) {
+    if (!redirects.every((item) => typeof item === "string")) {
       throw new Error("Invalid redirects format: expected array of strings");
     }
 
