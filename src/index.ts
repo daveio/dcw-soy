@@ -1,3 +1,13 @@
+// Constants for KV caching
+const KV_KEY = "valid-redirects";
+const CACHE_TTL = 3600; // 1 hour in seconds
+
+// Interface for cached redirect data
+interface RedirectCache {
+  redirects: string[];
+  lastUpdated: string; // ISO 8601 timestamp
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url: URL = new URL(request.url);
@@ -10,14 +20,14 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    return await handleRedirect(request, env);
+    return await handleRedirect(request, env, ctx);
   },
 } satisfies ExportedHandler<Env>;
 
 /**
  * Handle redirect logic for non-root paths
  */
-async function handleRedirect(request: Request, env: Env): Promise<Response> {
+async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url: URL = new URL(request.url);
   const { pathname }: { pathname: string } = url;
 
@@ -25,7 +35,13 @@ async function handleRedirect(request: Request, env: Env): Promise<Response> {
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname;
 
   // Get the list of valid redirects
-  const validRedirects: string[] = await getValidRedirects();
+  const validRedirects: string[] | null = await getValidRedirects(env, ctx);
+
+  // If we can't determine valid redirects, redirect anyway and let dave.io handle it
+  if (validRedirects === null) {
+    const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
+    return Response.redirect(redirectUrl, 301);
+  }
 
   // Check if the requested path is in the list of valid redirects
   if (validRedirects.includes(redirectPath)) {
@@ -74,12 +90,61 @@ async function fetchValidRedirects(): Promise<string[]> {
 }
 
 /**
- * Get the list of valid redirects (wrapper for future caching)
+ * Get the list of valid redirects with KV caching
  */
-async function getValidRedirects(): Promise<string[]> {
-  // For now, just fetch directly
-  // Future: implement caching logic here
-  return await fetchValidRedirects();
+async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<string[] | null> {
+  try {
+    // Try to get from cache
+    const cached = (await env.KV.get(KV_KEY, "json")) as RedirectCache | null;
+
+    if (cached && cached.redirects) {
+      // Cache hit - return cached data immediately
+      // Schedule async refresh (non-blocking)
+      ctx.waitUntil(refreshCache(env));
+      return cached.redirects;
+    }
+
+    // Cache miss - fetch synchronously and update cache
+    const redirects = await fetchValidRedirects();
+    if (redirects.length > 0) {
+      await updateCache(env, redirects);
+      return redirects;
+    }
+
+    // Empty redirects array means something went wrong - redirect anyway
+    return null;
+  } catch (error) {
+    // On any error, return null to indicate "redirect anyway"
+    console.error("Error in getValidRedirects:", error);
+    return null;
+  }
+}
+
+/**
+ * Update the KV cache with new redirect data
+ */
+async function updateCache(env: Env, redirects: string[]): Promise<void> {
+  const cacheData: RedirectCache = {
+    redirects,
+    lastUpdated: new Date().toISOString(),
+  };
+  await env.KV.put(KV_KEY, JSON.stringify(cacheData), {
+    expirationTtl: CACHE_TTL,
+  });
+}
+
+/**
+ * Refresh the cache asynchronously
+ */
+async function refreshCache(env: Env): Promise<void> {
+  try {
+    const redirects = await fetchValidRedirects();
+    if (redirects.length > 0) {
+      await updateCache(env, redirects);
+    }
+  } catch (error) {
+    console.error("Error refreshing cache:", error);
+  }
 }
 
 /**
