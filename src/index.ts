@@ -61,6 +61,11 @@ async function fetchValidRedirects(): Promise<string[]> {
       throw new Error("Invalid response format from ping endpoint");
     }
 
+    // Validate that all elements are strings
+    if (!redirects.every((item) => typeof item === 'string')) {
+      throw new Error("Invalid redirects format: expected array of strings");
+    }
+
     return redirects;
   } catch (error) {
     console.error("Error fetching valid redirects:", error);
