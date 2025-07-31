@@ -21,37 +21,60 @@ async function handleRedirect(request: Request, env: Env): Promise<Response> {
   const url: URL = new URL(request.url);
   const { pathname }: { pathname: string } = url;
 
-  // Check if the redirect exists at dave.io/go/{path}
+  // Extract the redirect path without leading slash
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname;
-  const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
 
+  // Get the list of valid redirects
+  const validRedirects: string[] = await getValidRedirects();
+
+  // Check if the requested path is in the list of valid redirects
+  if (validRedirects.includes(redirectPath)) {
+    // Redirect to dave.io
+    const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
+    return Response.redirect(redirectUrl, 301);
+  }
+
+  // Path not found in valid redirects, serve the not-found page
+  return await serveNotFoundPage(request, env);
+}
+
+/**
+ * Fetch the list of valid redirects from dave.io/api/ping
+ */
+async function fetchValidRedirects(): Promise<string[]> {
   try {
-    const checkResponse: Response = await checkRedirectExists(redirectUrl);
+    const response = await fetch("https://dave.io/api/ping", {
+      method: "GET",
+      headers: {
+        "User-Agent": "THERE IS NO USER AGENT. THERE IS ONLY SOY.",
+      },
+    });
 
-    // If it's a 404, serve our custom not-found page
-    if (checkResponse.status === 404) {
-      return await serveNotFoundPage(request, env);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch redirects: ${response.status}`);
     }
 
-    // Otherwise, redirect to dave.io
-    return Response.redirect(redirectUrl, 301);
+    const data: any = await response.json();
+    const redirects = data?.result?.pingData?.redirects;
+
+    if (!Array.isArray(redirects)) {
+      throw new Error("Invalid response format from ping endpoint");
+    }
+
+    return redirects;
   } catch (error) {
-    // If there's an error checking, serve the not-found page
-    return await serveNotFoundPage(request, env);
+    console.error("Error fetching valid redirects:", error);
+    return [];
   }
 }
 
 /**
- * Check if a redirect exists at the given URL
+ * Get the list of valid redirects (wrapper for future caching)
  */
-async function checkRedirectExists(redirectUrl: string): Promise<Response> {
-  return await fetch(redirectUrl, {
-    method: "GET",
-    redirect: "manual",
-    headers: {
-      "User-Agent": "THERE IS NO USER AGENT. THERE IS ONLY SOY.",
-    },
-  });
+async function getValidRedirects(): Promise<string[]> {
+  // For now, just fetch directly
+  // Future: implement caching logic here
+  return await fetchValidRedirects();
 }
 
 /**
