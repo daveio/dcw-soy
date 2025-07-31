@@ -2,6 +2,6 @@
   "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
   "extends": [".trunk/configs/biome.json"],
   "files": {
-    "includes": ["src/**", "static/**", "wrangler.jsonc", "package.json", "AGENTS.md"]
+    "include": ["src/**", "static/**", "wrangler.jsonc", "package.json", "AGENTS.md"]
   }
 }

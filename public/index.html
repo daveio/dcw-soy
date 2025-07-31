@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>dcw.soy</title>
+    <link rel="preload" href="soy.webp" as="image" />
     <style>
       * {
         box-sizing: border-box;
@@ -28,6 +29,13 @@
         animation: dance 2s ease-in-out infinite;
         cursor: pointer;
         filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+        outline: none;
+      }
+
+      .soy-bottle:focus {
+        outline: 3px solid rgba(255, 255, 255, 0.8);
+        outline-offset: 5px;
+        border-radius: 10px;
       }
 
       .soy-bottle img {
@@ -340,6 +348,9 @@
         bottleImg.addEventListener("load", animate);
         bottleImg.addEventListener("error", () => {
           console.error("Failed to load soy sauce bottle image");
+          // Show a fallback emoji if image fails to load
+          bottle.innerHTML = '<div style="font-size: 100px; text-align: center;">🍶</div>';
+          animate();
         });
       }
 

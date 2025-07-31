@@ -10,14 +10,14 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    return await handleRedirect(request, env);
+    return await handleRedirect(request, env, ctx);
   },
 } satisfies ExportedHandler<Env>;
 
 /**
  * Handle redirect logic for non-root paths
  */
-async function handleRedirect(request: Request, env: Env): Promise<Response> {
+async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url: URL = new URL(request.url);
   const { pathname }: { pathname: string } = url;
 
@@ -25,8 +25,28 @@ async function handleRedirect(request: Request, env: Env): Promise<Response> {
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname;
   const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
 
+  // Try to get from cache first
+  const cache = caches.default;
+  const cacheKey = new Request(redirectUrl, { method: "HEAD" });
+  const cachedResponse = await cache.match(cacheKey);
+
+  if (cachedResponse) {
+    // Cache hit - return cached result
+    if (cachedResponse.status === 404) {
+      return await serveNotFoundPage(request, env);
+    }
+    return Response.redirect(redirectUrl, 301);
+  }
+
   try {
     const checkResponse: Response = await checkRedirectExists(redirectUrl);
+
+    // Cache the result for 5 minutes
+    const cacheResponse = new Response(null, {
+      status: checkResponse.status,
+      headers: { "Cache-Control": "max-age=300" },
+    });
+    ctx.waitUntil(cache.put(cacheKey, cacheResponse.clone()));
 
     // If it's a 404, serve our custom not-found page
     if (checkResponse.status === 404) {
@@ -36,6 +56,9 @@ async function handleRedirect(request: Request, env: Env): Promise<Response> {
     // Otherwise, redirect to dave.io
     return Response.redirect(redirectUrl, 301);
   } catch (error) {
+    // Log error for debugging
+    console.error(`Error checking redirect for ${redirectUrl}:`, error);
+
     // If there's an error checking, serve the not-found page
     return await serveNotFoundPage(request, env);
   }

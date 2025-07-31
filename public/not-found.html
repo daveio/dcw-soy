@@ -179,8 +179,16 @@
     <script>
       // Create floating emojis
       const sadEmojis = ["😭", "💔", "🥺", "😢"];
+      const maxEmojis = 10;
+      let emojiInterval;
 
       function createEmoji() {
+        // Limit number of emojis to prevent memory issues
+        const existingEmojis = document.querySelectorAll(".emoji");
+        if (existingEmojis.length >= maxEmojis) {
+          return;
+        }
+
         const emoji = document.createElement("div");
         emoji.className = "emoji";
         emoji.textContent = sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
@@ -200,7 +208,7 @@
       }
 
       // Continue creating emojis
-      setInterval(createEmoji, 2000);
+      emojiInterval = setInterval(createEmoji, 2000);
 
       // Add click effect on the spilled bottle
       const bottle = document.querySelector(".spilled-bottle");
@@ -213,6 +221,13 @@
         // Create burst of emojis
         for (let i = 0; i < 10; i++) {
           setTimeout(() => createEmoji(), i * 100);
+        }
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (emojiInterval) {
+          clearInterval(emojiInterval);
         }
       });
     </script>
