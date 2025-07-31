@@ -1,6 +1,8 @@
 // Constants for KV caching
-const KV_KEY = "valid-redirects";
+const KV_KEY = "redirects";
+const KV_LOCK_KEY = "redirects-lock";
 const CACHE_TTL = 3600; // 1 hour in seconds
+const REFRESH_LOCK_TTL = 300; // 5 minutes - prevents stuck locks
 
 // Interface for cached redirect data
 interface RedirectCache {
@@ -54,6 +56,103 @@ async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext)
   return await serveNotFoundPage(request, env);
 }
 
+interface CloudflareHeaders {
+  "cf-connecting-ip": string;
+  "cf-ipcity": string;
+  "cf-ipcontinent": string;
+  "cf-ipcountry": string;
+  "cf-iplatitude": string;
+  "cf-iplongitude": string;
+  "cf-postal-code": string;
+  "cf-ray": string;
+  "cf-region": string;
+  "cf-region-code": string;
+  "cf-timezone": string;
+  "cf-visitor": string;
+}
+
+interface ForwardingHeaders {
+  "x-forwarded-proto": string;
+  "x-real-ip": string;
+}
+
+interface OtherHeaders {
+  accept: string;
+  "accept-encoding": string;
+  connection: string;
+  host: string;
+  "user-agent": string;
+}
+
+interface HeadersData {
+  cloudflare: CloudflareHeaders;
+  count: number;
+  forwarding: ForwardingHeaders;
+  other: OtherHeaders;
+}
+
+interface AuthData {
+  supplied: boolean;
+}
+
+interface CloudflarePingData {
+  connectingIP: string;
+  country: {
+    ip: string;
+    primary: string;
+  };
+  datacentre: string;
+  ray: string;
+  request: {
+    agent: string;
+    host: string;
+    method: string;
+    path: string;
+    proto: {
+      forward: string;
+      request: string;
+    };
+    version: string;
+  };
+}
+
+interface WorkerData {
+  edge_functions: boolean;
+  environment: string;
+  limits: {
+    cpu_time: string;
+    memory: string;
+    request_timeout: string;
+  };
+  preset: string;
+  runtime: string;
+  server_side_rendering: boolean;
+  version: string;
+}
+
+interface PingData {
+  cloudflare: CloudflarePingData;
+  redirects: string[];
+  worker: WorkerData;
+}
+
+interface PingResult {
+  auth: AuthData;
+  headers: HeadersData;
+  pingData: PingData;
+}
+
+interface PingApiResponse {
+  ok: boolean;
+  result: PingResult;
+  message: string;
+  error: null | string;
+  status: {
+    message: string;
+  };
+  timestamp: string;
+}
+
 /**
  * Fetch the list of valid redirects from dave.io/api/ping
  */
@@ -70,7 +169,7 @@ async function fetchValidRedirects(): Promise<string[]> {
       throw new Error(`Failed to fetch redirects: ${response.status}`);
     }
 
-    const data: any = await response.json();
+    const data: PingApiResponse = await response.json();
     const redirects = data?.result?.pingData?.redirects;
 
     if (!Array.isArray(redirects)) {
@@ -99,8 +198,8 @@ async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<strin
 
     if (cached && cached.redirects) {
       // Cache hit - return cached data immediately
-      // Schedule async refresh (non-blocking)
-      ctx.waitUntil(refreshCache(env));
+      // Schedule async refresh (non-blocking) only if no refresh is already in progress
+      ctx.waitUntil(refreshCacheWithLock(env));
       return cached.redirects;
     }
 
@@ -134,7 +233,40 @@ async function updateCache(env: Env, redirects: string[]): Promise<void> {
 }
 
 /**
- * Refresh the cache asynchronously
+ * Refresh the cache asynchronously with locking to prevent race conditions
+ */
+async function refreshCacheWithLock(env: Env): Promise<void> {
+  try {
+    // Check if a refresh is already in progress
+    const lockExists = await env.KV.get(KV_LOCK_KEY);
+    if (lockExists !== null) {
+      // Another refresh is in progress, skip this one
+      return;
+    }
+
+    // Acquire the lock
+    await env.KV.put(KV_LOCK_KEY, new Date().toISOString(), {
+      expirationTtl: REFRESH_LOCK_TTL,
+    });
+
+    // Perform the refresh
+    await refreshCache(env);
+
+    // Release the lock
+    await env.KV.delete(KV_LOCK_KEY);
+  } catch (error) {
+    console.error("Error in refreshCacheWithLock:", error);
+    // Ensure lock is released even if refresh fails
+    try {
+      await env.KV.delete(KV_LOCK_KEY);
+    } catch (lockReleaseError) {
+      console.error("Error releasing refresh lock:", lockReleaseError);
+    }
+  }
+}
+
+/**
+ * Refresh the cache asynchronously (internal function)
  */
 async function refreshCache(env: Env): Promise<void> {
   try {
