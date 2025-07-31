@@ -1,6 +1,6 @@
-# dcw.soy
+# [`dcw.soy`](https://dcw.soy)
 
-It's just soy sauce. Click the bottle to visit [dave.io](https://dave.io)!
+[It's just soy sauce](https://dcw.soy). Click the bottle to visit [dave.io](https://dave.io)!
 
 ## 🛠️ Development
 
