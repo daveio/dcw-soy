@@ -14,4 +14,10 @@
   "placement": {
     "mode": "smart",
   },
+  "kv_namespaces": [
+    {
+      "binding": "REDIRECT_CACHE",
+      "id": "REDIRECT_CACHE_ID",
+    },
+  ],
 }

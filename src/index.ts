@@ -25,14 +25,13 @@ async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext)
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname;
   const redirectUrl: string = `https://dave.io/go/${redirectPath}`;
 
-  // Try to get from cache first
-  const cache = caches.default;
-  const cacheKey = new Request(redirectUrl, { method: "HEAD" });
-  const cachedResponse = await cache.match(cacheKey);
+  // Try to get from KV cache first
+  const cacheKey = `redirect:${redirectPath}`;
+  const cachedStatus = await env.REDIRECT_CACHE.get(cacheKey);
 
-  if (cachedResponse) {
+  if (cachedStatus) {
     // Cache hit - return cached result
-    if (cachedResponse.status === 404) {
+    if (cachedStatus === "404") {
       return await serveNotFoundPage(request, env);
     }
     return Response.redirect(redirectUrl, 301);
@@ -41,12 +40,11 @@ async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext)
   try {
     const checkResponse: Response = await checkRedirectExists(redirectUrl);
 
-    // Cache the result for 5 minutes
-    const cacheResponse = new Response(null, {
-      status: checkResponse.status,
-      headers: { "Cache-Control": "max-age=300" },
+    // Cache the result for 5 minutes in KV
+    const expirationTTL = 300; // 5 minutes
+    await env.REDIRECT_CACHE.put(cacheKey, checkResponse.status === 404 ? "404" : "exists", {
+      expirationTtl: expirationTTL,
     });
-    ctx.waitUntil(cache.put(cacheKey, cacheResponse.clone()));
 
     // If it's a 404, serve our custom not-found page
     if (checkResponse.status === 404) {
