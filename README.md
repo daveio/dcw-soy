@@ -42,7 +42,8 @@ This project uses [Trunk](https://trunk.io) for linting and formatting to mainta
 │   └── index.js          # Cloudflare Worker entry point
 ├── static/
 │   ├── index.html        # Main site with animations
-│   └── soy.webp         # Soy sauce bottle image
+│   ├── soy.webp          # Soy sauce bottle image
+│   └── duck.webp         # A duck, used for dave.io integration tests
 ├── wrangler.jsonc        # Cloudflare Workers configuration
 └── package.json          # Project dependencies and scripts
 ```
