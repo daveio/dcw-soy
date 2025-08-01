@@ -1,22 +1,22 @@
 {
-    "devDependencies": {
-        "@cloudflare/vitest-pool-workers": "^0.8.58",
-        "typescript": "^5.8.3",
-        "vitest": "~3.2.4",
-        "wrangler": "^4.26.1"
-    },
-    "engines": {
-        "bun": "^1.2.19",
-        "node": "^22.17.1"
-    },
-    "name": "dcw-soy",
-    "packageManager": "bun@1.2.19",
-    "private": true,
-    "scripts": {
-        "cf-typegen": "bun run wrangler types",
-        "deploy": "bun run wrangler deploy",
-        "dev": "bun run wrangler dev",
-        "postinstall": "bun run wrangler types"
-    },
-    "version": "0.1.0"
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.59",
+    "typescript": "^5.9.2",
+    "vitest": "~3.2.4",
+    "wrangler": "^4.27.0"
+  },
+  "engines": {
+    "bun": "^1.2.19",
+    "node": "^22.18.0"
+  },
+  "name": "dcw-soy",
+  "packageManager": "bun@1.2.19",
+  "private": true,
+  "scripts": {
+    "cf-typegen": "bun run wrangler types",
+    "deploy": "bun run wrangler deploy",
+    "dev": "bun run wrangler dev",
+    "postinstall": "bun run wrangler types"
+  },
+  "version": "0.1.0"
 }
