@@ -1,17 +1,17 @@
 # `.github/copilot-instructions.md`
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (<https://claude.ai/code>) and other AI agents when working with code in this repository.
 
 ## File Locations
 
 This codebase has documentation for AI agents.
 
-- The authoritative file is [`.github/copilot-instructions.md`](copilot-instructions.md).
+- The authoritative file is `.github/copilot-instructions.md`.
   - There are two symlinks to this file:
-    - [`AGENTS.md`](../AGENTS.md)
-    - [`CLAUDE.md`](../CLAUDE.md)
-  - All edits should be made to [`.github/copilot-instructions.md`](copilot-instructions.md).
-    - Edits to [`.github/copilot-instructions.md`](copilot-instructions.md) will automatically be reflected in [`AGENTS.md`](../AGENTS.md) and [`CLAUDE.md`](../CLAUDE.md).
+    - `AGENTS.md`
+    - `CLAUDE.md`
+  - All edits should be made to `.github/copilot-instructions.md`.
+    - Edits to `.github/copilot-instructions.md` will automatically be reflected in `AGENTS.md` and `CLAUDE.md`.
 
 ## Project Overview
 
