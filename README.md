@@ -2,6 +2,9 @@
 
 [It's just soy sauce](https://dcw.soy). Click the bottle to visit [dave.io](https://dave.io)!
 
+> [!TIP]
+> This codebase has documentation for AI agents. See [`github/copilot-instructions.md`](.github/copilot-instructions.md). [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) symlink to this file.
+
 ## 🌟 Overview
 
 `dcw-soy` is a Cloudflare Workers application that serves a delightful soy sauce bottle animation website. Beyond the playful frontend, it includes a sophisticated redirect system with intelligent caching using Cloudflare KV storage.
@@ -80,7 +83,7 @@ bun run deploy:nonprod
 │   ├── index.html        # Main site with animations
 │   ├── not-found.html    # 404 not found page
 │   ├── soy.webp          # Soy sauce bottle image
-│   └── duck.webp         # A duck, used for dave.io integration
+│   └── duck.webp         # A duck, used by dave.io integration tests
 ├── wrangler.jsonc        # Cloudflare Workers configuration
 ├── tsconfig.json         # TypeScript configuration
 ├── biome.json            # Biome linter configuration
