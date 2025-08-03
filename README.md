@@ -5,7 +5,7 @@
 > [!TIP]
 > This codebase has documentation for AI agents.
 >
-> See [`github/copilot-instructions.md`](.github/copilot-instructions.md).
+> See [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
 >
 > [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) symlink to this file.
 
