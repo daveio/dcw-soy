@@ -1,9 +1,8 @@
 {
-  "root": false,
   "$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
   "css": {
     "formatter": {
-      "quoteStyle": "single"
+      "quoteStyle": "double"
     }
   },
   "formatter": {
@@ -18,12 +17,12 @@
   },
   "graphql": {
     "formatter": {
-      "quoteStyle": "single"
+      "quoteStyle": "double"
     }
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single",
+      "quoteStyle": "double",
       "semicolons": "asNeeded",
       "trailingCommas": "none"
     }
