@@ -3,7 +3,11 @@
 [It's just soy sauce](https://dcw.soy). Click the bottle to visit [dave.io](https://dave.io)!
 
 > [!TIP]
-> This codebase has documentation for AI agents. See [`github/copilot-instructions.md`](.github/copilot-instructions.md). [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) symlink to this file.
+> This codebase has documentation for AI agents.
+>
+> See [`github/copilot-instructions.md`](.github/copilot-instructions.md).
+>
+> [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) symlink to this file.
 
 ## 🌟 Overview
 
