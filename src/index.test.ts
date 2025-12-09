@@ -38,11 +38,11 @@ function createMockEnv(assetMap: AssetMap = {}) {
         const value = store.get(key) ?? null
         if (value === null) return null
         if (type === "json" && typeof value === "string") {
-              try {
-                return JSON.parse(value)
-              } catch {
-                return null
-              }
+          try {
+            return JSON.parse(value)
+          } catch {
+            return null
+          }
         }
         return value as never
       }),
