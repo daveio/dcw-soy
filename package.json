@@ -1,27 +1,30 @@
 {
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.67",
-    "@biomejs/biome": "^2.1.3",
-    "@cloudflare/vitest-pool-workers": "^0.8.59",
+    "@anthropic-ai/claude-code": "^2.0.62",
+    "@biomejs/biome": "^2.3.8",
+    "@cloudflare/vitest-pool-workers": "^0.10.14",
     "@trunkio/launcher": "^1.3.4",
     "npm-run-all2": "^8.0.4",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.2",
-    "vitest": "~3.2.4",
-    "wrangler": "^4.27.0"
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "vitest": "~4.0.15",
+    "wrangler": "^4.53.0"
   },
   "engines": {
-    "bun": "^1.3.1",
-    "node": "^25.1.0"
+    "bun": "^1.3.4",
+    "node": "^25.2.1"
   },
   "name": "dcw-soy",
-  "packageManager": "bun@1.3.1",
+  "packageManager": "bun@1.3.4",
   "private": true,
   "scripts": {
     "cf-typegen": "bun run wrangler types",
     "deploy": "bun run wrangler deploy",
     "deploy:nonprod": "bun run wrangler versions upload",
     "dev": "bun run wrangler dev",
+    "format": "bun run run-s format:prettier format:trunk",
+    "format:prettier": "bun run prettier --write .",
+    "format:trunk": "bun run trunk fmt -a",
     "lint": "bun run-s lint:biome lint:trunk lint:types",
     "lint:biome": "bun run biome check .",
     "lint:fix": "bun run-s lint:fix:biome lint:fix:trunk",
@@ -33,7 +36,8 @@
     "lint:format:trunk": "trunk fmt -a",
     "lint:trunk": "bun run trunk check -a --fix",
     "lint:types": "tsc --noEmit",
-    "postinstall": "bun run cf-typegen"
+    "postinstall": "bun run-s types format",
+    "types": "bun run wrangler types"
   },
   "version": "0.1.0"
 }

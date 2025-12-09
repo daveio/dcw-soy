@@ -7,7 +7,7 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.7.3
+      ref: v1.7.4
       uri: https://github.com/trunk-io/plugins
 # Many linters and tools depend on runtimes - configure them here. (https://docs.trunk.io/runtimes)
 runtimes:
@@ -18,14 +18,14 @@ runtimes:
 lint:
   enabled:
     - taplo@0.10.0
-    - actionlint@1.7.8
-    - biome@2.3.2
-    - markdownlint@0.45.0
-    - checkov@3.2.489
+    - actionlint@1.7.9
+    - biome@2.3.8
+    - markdownlint@0.46.0
+    - checkov@3.2.495
     - git-diff-check
-    - osv-scanner@2.2.4
-    - prettier@3.6.2
-    - trufflehog@3.90.12
+    - osv-scanner@2.3.0
+    - prettier@3.7.4
+    - trufflehog@3.92.1
     - yamllint@1.37.1
   ignore:
     - linters:
@@ -41,8 +41,17 @@ lint:
         - worker-configuration.d.ts
         - wrangler.jsonc
 actions:
+  definitions:
+    - id: bun-install
+      display_name: Install dependencies with bun
+      description: Run bun install to ensure dependencies are up to date
+      run: bun install
+      triggers:
+        - git_hooks:
+            - pre-commit
   enabled:
     - trunk-announce
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
+    - bun-install
