@@ -22,6 +22,14 @@ export default {
       return env.ASSETS.fetch(request)
     }
 
+    // Serve static assets directly if they exist
+    if (request.method === "GET" || request.method === "HEAD") {
+      const assetResponse = await env.ASSETS.fetch(request)
+      if (assetResponse.status !== 404) {
+        return assetResponse
+      }
+    }
+
     return await handleRedirect(request, env, ctx)
   }
 } satisfies ExportedHandler<Env>

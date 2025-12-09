@@ -7,7 +7,7 @@
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
-    "vitest": "~4.0.15",
+    "vitest": "^4.0.15",
     "wrangler": "^4.53.0"
   },
   "engines": {
@@ -35,6 +35,7 @@
     "lint:format:trunk": "trunk fmt -a",
     "lint:trunk": "bun run trunk check -a --fix",
     "lint:types": "tsc --noEmit",
+    "test": "bun run vitest run",
     "postinstall": "bun run-s cf-typegen lint:format"
   },
   "version": "0.1.0"
