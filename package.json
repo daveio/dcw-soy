@@ -22,7 +22,6 @@
     "deploy": "bun run wrangler deploy",
     "deploy:nonprod": "bun run wrangler versions upload",
     "dev": "bun run wrangler dev",
-    "format": "bun run run-s format:prettier format:trunk",
     "format:prettier": "bun run prettier --write .",
     "format:trunk": "bun run trunk fmt -a",
     "lint": "bun run-s lint:biome lint:trunk lint:types",
@@ -36,8 +35,7 @@
     "lint:format:trunk": "trunk fmt -a",
     "lint:trunk": "bun run trunk check -a --fix",
     "lint:types": "tsc --noEmit",
-    "postinstall": "bun run-s types format",
-    "types": "bun run wrangler types"
+    "postinstall": "bun run-s cf-typegen lint:format"
   },
   "version": "0.1.0"
 }
