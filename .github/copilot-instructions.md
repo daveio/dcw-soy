@@ -33,7 +33,7 @@
 
 ## Project Structure
 
-```
+```plaintext
 src/
 ├── index.ts          # Main worker: fetch handler, redirect logic, KV caching
 └── index.test.ts     # Vitest tests with mocked KV and ASSETS
