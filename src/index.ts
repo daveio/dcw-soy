@@ -214,6 +214,14 @@ async function serveNotFoundPage(request: Request, env: Env): Promise<Response> 
   const notFoundRequest: Request = new Request(notFoundUrl.toString())
   const response: Response = await env.ASSETS.fetch(notFoundRequest)
 
+  if (response.status === 404) {
+    console.error("Error serving not-found page: asset missing")
+    return new Response("404 - Page Not Found", {
+      status: 404,
+      headers: { "Content-Type": "text/plain" }
+    })
+  }
+
   // Return the not-found page with 404 status but keep the original URL
   const headers: Headers = new Headers(response.headers)
   headers.delete("Location")

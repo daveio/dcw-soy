@@ -1,5 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import handler from "./index"
-import { describe, expect, it, vi, afterEach, beforeEach } from "vitest"
 
 type AssetResponseConfig = {
   body?: string
@@ -118,6 +118,19 @@ describe("worker fetch", () => {
     expect(response.status).toBe(404)
     expect(response.headers.get("Location")).toBeNull()
     expect(await response.text()).toBe("not-found")
+  })
+
+  it("serves generic 404 when not-found.html asset is missing", async () => {
+    const { env, kvStore, assetsFetch } = createMockEnv() // No not-found.html asset
+    kvStore.set(KV_KEY, { redirects: ["existing"], lastUpdated: new Date().toISOString() })
+
+    const response = await handler.fetch(new Request("https://dcw.soy/missing"), env, createExecutionContext())
+
+    expect(assetsFetch).toHaveBeenCalledTimes(2)
+    expect(response.status).toBe(404)
+    expect(response.headers.get("Location")).toBeNull()
+    expect(await response.text()).toBe("404 - Page Not Found")
+    expect(response.headers.get("Content-Type")).toBe("text/plain")
   })
 
   it("fetches redirects remotely on cache miss and caches the result", async () => {
