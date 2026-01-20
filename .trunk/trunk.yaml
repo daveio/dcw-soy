@@ -23,10 +23,10 @@ lint:
     - markdownlint@0.47.0
     - checkov@3.2.497
     - git-diff-check
-    - osv-scanner@2.3.1
-    - prettier@3.7.4
-    - trufflehog@3.92.4
-    - yamllint@1.37.1
+    - osv-scanner@2.3.2
+    - prettier@3.8.0
+    - trufflehog@3.92.5
+    - yamllint@1.38.0
   ignore:
     - linters:
         - prettier
