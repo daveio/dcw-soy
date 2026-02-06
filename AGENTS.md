@@ -114,10 +114,10 @@ Each non-stats request writes an Analytics Engine data point with:
 
 ## CI/CD
 
-- **`ci.yaml`**: Standard CI pipeline.
-- **`devskim.yaml`**: DevSkim security scanning.
-- **`claude-code-review.yml`**: Claude AI code review on PRs.
-- **`claude.yml`**: Claude AI PR assistant.
+- **`.github/workflows/ci.yaml`**: Standard CI pipeline.
+- **`.github/workflows/devskim.yaml`**: DevSkim security scanning.
+- **`.github/workflows/claude-code-review.yml`**: Claude AI code review on PRs.
+- **`.github/workflows/claude.yml`**: Claude AI PR assistant.
 
 ## Gotchas
 
