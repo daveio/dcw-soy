@@ -40,6 +40,10 @@ lint:
       paths:
         - worker-configuration.d.ts
         - wrangler.jsonc
+    - linters:
+        - yamllint
+      paths:
+        - .github/workflows/claude*.yml
 actions:
   definitions:
     - id: bun-install
