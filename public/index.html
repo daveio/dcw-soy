@@ -21,6 +21,16 @@
         position: relative;
       }
 
+      #particleBg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+      }
+
       .soy-bottle {
         position: absolute;
         width: 120px;
@@ -28,6 +38,7 @@
         animation: dance 2s ease-in-out infinite;
         cursor: pointer;
         filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+        z-index: 4;
       }
 
       .soy-bottle img {
@@ -57,6 +68,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        z-index: 2;
       }
 
       .food {
@@ -121,6 +133,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        z-index: 1;
       }
 
       .sparkle {
@@ -179,6 +192,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        z-index: 3;
       }
 
       .trail-dot {
@@ -205,6 +219,7 @@
         border-radius: 50%;
         animation: ripple 0.6s ease-out forwards;
         pointer-events: none;
+        z-index: 5;
       }
 
       @keyframes ripple {
@@ -216,6 +231,7 @@
     </style>
   </head>
   <body>
+    <canvas id="particleBg" aria-hidden="true"></canvas>
     <div class="sparkles" role="presentation">
       <div class="sparkle" aria-hidden="true"></div>
       <div class="sparkle" aria-hidden="true"></div>
@@ -394,6 +410,110 @@
           cancelAnimationFrame(animationId);
         }
       });
+      // --- Orbital Particle Background ---
+      (function () {
+        const canvas = document.getElementById("particleBg");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return; // Fallback: CSS gradient remains visible
+
+        // Palette matching the page gradient
+        const colors = ["#667eea", "#764ba2", "#8b5cf6", "#a78bfa", "#c4b5fd", "#6366f1"];
+
+        // Pre-render soft particle textures (one per color)
+        const texSize = 128;
+        const textures = colors.map((color) => {
+          const offscreen = document.createElement("canvas");
+          offscreen.width = texSize;
+          offscreen.height = texSize;
+          const octx = offscreen.getContext("2d");
+          const grad = octx.createRadialGradient(texSize / 2, texSize / 2, 0, texSize / 2, texSize / 2, texSize / 2);
+          // Solid core up to 30%, then fade to transparent
+          grad.addColorStop(0, color);
+          grad.addColorStop(0.3, color);
+          grad.addColorStop(1, "transparent");
+          octx.fillStyle = grad;
+          octx.fillRect(0, 0, texSize, texSize);
+          return offscreen;
+        });
+
+        // Responsive particle count
+        function particleCount() {
+          return window.innerWidth < 768 ? 20 : 40;
+        }
+
+        // Orbit focal points (recalculated on resize)
+        function getFoci() {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          return [
+            { x: w * 0.5, y: h * 0.5 },
+            { x: w * 0.2, y: h * 0.25 },
+            { x: w * 0.8, y: h * 0.75 },
+          ];
+        }
+
+        function createParticle(foci) {
+          const focus = foci[Math.floor(Math.random() * foci.length)];
+          return {
+            focusIdx: foci.indexOf(focus),
+            orbitRadius: 80 + Math.random() * 270,
+            angle: Math.random() * Math.PI * 2,
+            speed: (0.001 + Math.random() * 0.004) * (Math.random() < 0.5 ? 1 : -1),
+            size: 30 + Math.random() * 60,
+            opacity: 0.08 + Math.random() * 0.17,
+            wobbleAmp: 5 + Math.random() * 15,
+            wobbleFreq: 0.002 + Math.random() * 0.003,
+            wobblePhase: Math.random() * Math.PI * 2,
+            texture: textures[Math.floor(Math.random() * textures.length)],
+          };
+        }
+
+        let foci = getFoci();
+        let particles = [];
+        const count = particleCount();
+        for (let i = 0; i < count; i++) {
+          particles.push(createParticle(foci));
+        }
+
+        let particleAnimId = null;
+        let frame = 0;
+
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          foci = getFoci();
+        }
+
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        function drawParticles() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.globalCompositeOperation = "lighter";
+
+          for (const p of particles) {
+            const focus = foci[p.focusIdx] || foci[0];
+            p.angle += p.speed;
+            const wobble = Math.sin(frame * p.wobbleFreq + p.wobblePhase) * p.wobbleAmp;
+            const r = p.orbitRadius + wobble;
+            const px = focus.x + Math.cos(p.angle) * r - p.size / 2;
+            const py = focus.y + Math.sin(p.angle) * r - p.size / 2;
+
+            ctx.globalAlpha = p.opacity;
+            ctx.drawImage(p.texture, px, py, p.size, p.size);
+          }
+
+          ctx.globalAlpha = 1;
+          frame++;
+          particleAnimId = requestAnimationFrame(drawParticles);
+        }
+
+        drawParticles();
+
+        window.addEventListener("beforeunload", () => {
+          if (particleAnimId) cancelAnimationFrame(particleAnimId);
+        });
+      })();
     </script>
   </body>
 </html>
