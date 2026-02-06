@@ -50,8 +50,8 @@ export default {
     const method = request.method
 
     // Serve static site for root paths
-    // we only have to handle the main path, asset URLs like the image are
-    // already handled through default routing to the assets binding
+    // run_worker_first is enabled, so the worker handles all requests
+    // including root and static assets (for analytics tracking)
     if (pathname === "/" || pathname === "") {
       const response = await env.ASSETS.fetch(request)
       writeAnalyticsEvent(env, {
@@ -173,7 +173,7 @@ interface RedirectsApiResponse {
 /**
  * Fetch the list of valid redirects from dave.io/api/redirects
  */
-async function fetchValidRedirects(): Promise<string[]> {
+async function fetchValidRedirects(): Promise<string[] | null> {
   try {
     const response = await fetch("https://dave.io/api/redirects", {
       method: "GET",
@@ -201,7 +201,7 @@ async function fetchValidRedirects(): Promise<string[]> {
     return redirects
   } catch (error) {
     console.error("Error fetching valid redirects:", error)
-    return []
+    return null
   }
 }
 
@@ -222,13 +222,16 @@ async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<Valid
 
     // Cache miss - fetch synchronously and update cache
     const redirects = await fetchValidRedirects()
-    if (redirects.length > 0) {
-      await updateCache(env, redirects)
-      return { redirects, cacheHit: false }
+    if (redirects === null) {
+      // Fetch error - return null to trigger optimistic fallback redirect
+      return { redirects: null, cacheHit: false }
     }
 
-    // Empty redirects array means something went wrong - redirect anyway
-    return { redirects: null, cacheHit: false }
+    // Valid response (possibly empty) - cache if non-empty
+    if (redirects.length > 0) {
+      await updateCache(env, redirects)
+    }
+    return { redirects, cacheHit: false }
   } catch (error) {
     // On any error, return null to indicate "redirect anyway"
     console.error("Error in getValidRedirects:", error)
@@ -288,7 +291,7 @@ async function refreshCacheWithLock(env: Env): Promise<void> {
 async function refreshCache(env: Env): Promise<void> {
   try {
     const redirects = await fetchValidRedirects()
-    if (redirects.length > 0) {
+    if (redirects !== null && redirects.length > 0) {
       await updateCache(env, redirects)
     }
   } catch (error) {

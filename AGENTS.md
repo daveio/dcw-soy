@@ -42,10 +42,10 @@ Always use `bun run` for scripts.
 
 The entry point for the worker.
 
-- **`fetch` handler**:
-  1. Routes `/stats/api/*` requests to `handleStatsApi` (Analytics Engine queries).
-  2. Checks if request is for root (`/`) -> serves from `env.ASSETS`.
-  3. Checks if request matches a static asset -> serves from `env.ASSETS`.
+- **`fetch` handler** (receives ALL requests via `run_worker_first: true`):
+  1. Checks if request is for root (`/`) -> serves from `env.ASSETS`, writes `static_root` event.
+  2. Routes `/stats/api/*` requests to `handleStatsApi` (Analytics Engine queries).
+  3. Checks if request matches a static asset -> serves from `env.ASSETS`, writes `static_asset` event.
   4. Calls `handleRedirect` for all other paths.
   5. Writes an Analytics Engine data point via `writeDataPoint` for every non-stats request.
 - **`handleRedirect`**:
@@ -121,8 +121,8 @@ Each non-stats request writes an Analytics Engine data point with:
 
 ## Gotchas
 
-- **Asset Binding**: The worker relies on `env.ASSETS` (Cloudflare Pages/Workers Assets) to serve static files. Tests mock this behavior.
+- **Asset Binding**: `run_worker_first: true` means every request hits the worker — the worker uses `env.ASSETS` to serve static files and tracks all requests in Analytics Engine. Tests mock this behavior.
 - **KV Mocking**: Tests use a `Map`-based mock for KV storage.
 - **Locking**: Be aware of the `refreshCacheWithLock` mechanism when modifying cache logic.
-- **Redirect Fallback**: If `getValidRedirects` returns `null` (error state), the code defaults to redirecting to `dave.io` assuming the path might handle it there.
+- **Redirect Fallback**: If `fetchValidRedirects` returns `null` (fetch error), `getValidRedirects` propagates this as `{ redirects: null }`, and `handleRedirect` optimistically redirects to `dave.io` (`redirect_fallback` event). If the fetch succeeds with an empty list, paths are correctly classified as `not_found`.
 - **Analytics Engine SQL Dialect**: The SQL API uses ClickHouse-compatible syntax. Table names with special characters (like `dcw-soy`) must use **double quotes** (`"dcw-soy"`), not backticks. Backticks cause a 422 parse error.
