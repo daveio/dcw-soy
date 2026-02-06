@@ -25,5 +25,17 @@
       "binding": "KV",
       "id": "2e9e71351a6b4918990f79523596863e"
     }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "ANALYTICS_API_TOKEN",
+      "store_id": "c38e38cf995f4db08a71c9b616169d33",
+      "secret_name": "analytics_workers"
+    },
+    {
+      "binding": "ACCOUNT_ID",
+      "store_id": "c38e38cf995f4db08a71c9b616169d33",
+      "secret_name": "account-id"
+    }
   ]
 }

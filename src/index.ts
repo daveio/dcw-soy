@@ -10,34 +10,98 @@ interface RedirectCache {
   lastUpdated: string // ISO 8601 timestamp
 }
 
+// Analytics Engine data model
+// Blob order:  [eventType, method, country, cacheStatus]
+// Double order: [statusCode, responseTimeMs]
+// Index:       [pathname]
+type EventType = "static_root" | "static_asset" | "redirect" | "redirect_fallback" | "not_found"
+type CacheStatus = "hit" | "miss" | "n/a"
+
+interface AnalyticsEvent {
+  eventType: EventType
+  method: string
+  country: string
+  cacheStatus: CacheStatus
+  statusCode: number
+  responseTimeMs: number
+  pathname: string
+}
+
+function writeAnalyticsEvent(env: Env, event: AnalyticsEvent): void {
+  env.ANALYTICS.writeDataPoint({
+    blobs: [event.eventType, event.method, event.country, event.cacheStatus],
+    doubles: [event.statusCode, event.responseTimeMs],
+    indexes: [event.pathname]
+  })
+}
+
+interface ValidRedirectsResult {
+  redirects: string[] | null
+  cacheHit: boolean
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const startTime = Date.now()
     const url: URL = new URL(request.url)
     const { pathname }: { pathname: string } = url
+    const analyticsPath = pathname.startsWith("/") ? pathname.substring(1) : pathname
+    const country: string = String(request.cf?.country ?? "unknown")
+    const method = request.method
 
     // Serve static site for root paths
     // we only have to handle the main path, asset URLs like the image are
     // already handled through default routing to the assets binding
     if (pathname === "/" || pathname === "") {
-      return env.ASSETS.fetch(request)
+      const response = await env.ASSETS.fetch(request)
+      writeAnalyticsEvent(env, {
+        eventType: "static_root",
+        method,
+        country,
+        cacheStatus: "n/a",
+        statusCode: response.status,
+        responseTimeMs: Date.now() - startTime,
+        pathname: analyticsPath || "/"
+      })
+      return response
+    }
+
+    // Stats API endpoints — must come before static asset check
+    if (pathname.startsWith("/stats/api/")) {
+      return handleStatsApi(pathname, method, env)
     }
 
     // Serve static assets directly if they exist
-    if (request.method === "GET" || request.method === "HEAD") {
+    if (method === "GET" || method === "HEAD") {
       const assetResponse = await env.ASSETS.fetch(request)
       if (assetResponse.status !== 404) {
+        writeAnalyticsEvent(env, {
+          eventType: "static_asset",
+          method,
+          country,
+          cacheStatus: "n/a",
+          statusCode: assetResponse.status,
+          responseTimeMs: Date.now() - startTime,
+          pathname: analyticsPath
+        })
         return assetResponse
       }
     }
 
-    return await handleRedirect(request, env, ctx)
+    return await handleRedirect(request, env, ctx, startTime, country)
   }
 } satisfies ExportedHandler<Env>
 
 /**
  * Handle redirect logic for non-root paths
  */
-async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleRedirect(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  startTime: number,
+  country: string
+): Promise<Response> {
   const url: URL = new URL(request.url)
   const { pathname }: { pathname: string } = url
 
@@ -45,11 +109,20 @@ async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext)
   const redirectPath: string = pathname.startsWith("/") ? pathname.substring(1) : pathname
 
   // Get the list of valid redirects
-  const validRedirects: string[] | null = await getValidRedirects(env, ctx)
+  const { redirects: validRedirects, cacheHit } = await getValidRedirects(env, ctx)
 
   // If we can't determine valid redirects, redirect anyway and let dave.io handle it
   if (validRedirects === null) {
     const redirectUrl: string = `https://dave.io/go/${redirectPath}`
+    writeAnalyticsEvent(env, {
+      eventType: "redirect_fallback",
+      method: request.method,
+      country,
+      cacheStatus: "miss",
+      statusCode: 301,
+      responseTimeMs: Date.now() - startTime,
+      pathname: redirectPath
+    })
     return Response.redirect(redirectUrl, 301)
   }
 
@@ -57,10 +130,28 @@ async function handleRedirect(request: Request, env: Env, ctx: ExecutionContext)
   if (validRedirects.includes(redirectPath)) {
     // Redirect to dave.io
     const redirectUrl: string = `https://dave.io/go/${redirectPath}`
+    writeAnalyticsEvent(env, {
+      eventType: "redirect",
+      method: request.method,
+      country,
+      cacheStatus: cacheHit ? "hit" : "miss",
+      statusCode: 301,
+      responseTimeMs: Date.now() - startTime,
+      pathname: redirectPath
+    })
     return Response.redirect(redirectUrl, 301)
   }
 
   // Path not found in valid redirects, serve the not-found page
+  writeAnalyticsEvent(env, {
+    eventType: "not_found",
+    method: request.method,
+    country,
+    cacheStatus: cacheHit ? "hit" : "miss",
+    statusCode: 404,
+    responseTimeMs: Date.now() - startTime,
+    pathname: redirectPath
+  })
   return await serveNotFoundPage(request, env)
 }
 
@@ -117,7 +208,7 @@ async function fetchValidRedirects(): Promise<string[]> {
 /**
  * Get the list of valid redirects with KV caching
  */
-async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<string[] | null> {
+async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<ValidRedirectsResult> {
   try {
     // Try to get from cache
     const cached = (await env.KV.get(KV_KEY, "json")) as RedirectCache | null
@@ -126,22 +217,22 @@ async function getValidRedirects(env: Env, ctx: ExecutionContext): Promise<strin
       // Cache hit - return cached data immediately
       // Schedule async refresh (non-blocking) only if no refresh is already in progress
       ctx.waitUntil(refreshCacheWithLock(env))
-      return cached.redirects
+      return { redirects: cached.redirects, cacheHit: true }
     }
 
     // Cache miss - fetch synchronously and update cache
     const redirects = await fetchValidRedirects()
     if (redirects.length > 0) {
       await updateCache(env, redirects)
-      return redirects
+      return { redirects, cacheHit: false }
     }
 
     // Empty redirects array means something went wrong - redirect anyway
-    return null
+    return { redirects: null, cacheHit: false }
   } catch (error) {
     // On any error, return null to indicate "redirect anyway"
     console.error("Error in getValidRedirects:", error)
-    return null
+    return { redirects: null, cacheHit: false }
   }
 }
 
@@ -229,4 +320,171 @@ async function serveNotFoundPage(request: Request, env: Env): Promise<Response> 
     status: 404,
     headers
   })
+}
+
+// --- Stats API ---
+
+const STATS_API_HEADERS = {
+  "Content-Type": "application/json",
+  "Cache-Control": "public, max-age=30"
+} as const
+
+/**
+ * Query the Cloudflare Analytics Engine SQL API
+ */
+async function queryAnalyticsEngine(env: Env, sql: string): Promise<{ data: Record<string, unknown>[] }> {
+  const token = await env.ANALYTICS_API_TOKEN.get()
+  const accountId = await env.ACCOUNT_ID.get()
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: sql
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`Analytics Engine query failed (${response.status}): ${text}`)
+  }
+  return response.json()
+}
+
+/**
+ * Route and handle stats API endpoint requests
+ */
+async function handleStatsApi(pathname: string, method: string, env: Env): Promise<Response> {
+  if (method !== "GET" && method !== "HEAD") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...STATS_API_HEADERS, Allow: "GET, HEAD" }
+    })
+  }
+
+  try {
+    const route = pathname.replace("/stats/api/", "")
+    let result: { data: Record<string, unknown>[] }
+
+    switch (route) {
+      case "overview":
+        result = await queryOverview(env)
+        break
+      case "traffic":
+        result = await queryTraffic(env)
+        break
+      case "paths":
+        result = await queryTopPaths(env)
+        break
+      case "countries":
+        result = await queryCountries(env)
+        break
+      case "cache":
+        result = await queryCache(env)
+        break
+      default:
+        return new Response(JSON.stringify({ error: "Unknown endpoint" }), { status: 404, headers: STATS_API_HEADERS })
+    }
+
+    return new Response(JSON.stringify(result.data), { headers: STATS_API_HEADERS })
+  } catch (error) {
+    console.error("Stats API error:", error)
+    return new Response(JSON.stringify({ error: "Failed to query analytics" }), {
+      status: 500,
+      headers: STATS_API_HEADERS
+    })
+  }
+}
+
+/**
+ * Query summary totals for the last 24 hours
+ */
+async function queryOverview(env: Env) {
+  return queryAnalyticsEngine(
+    env,
+    `
+    SELECT
+      SUM(_sample_interval) AS total_requests,
+      SUM(IF(blob1 = 'redirect', _sample_interval, 0)) AS redirects,
+      SUM(IF(blob1 = 'not_found', _sample_interval, 0)) AS not_found,
+      SUM(IF(blob1 = 'static_root' OR blob1 = 'static_asset', _sample_interval, 0)) AS static_served,
+      SUM(_sample_interval * double2) / SUM(_sample_interval) AS avg_response_ms
+    FROM \`dcw-soy\`
+    WHERE timestamp > NOW() - INTERVAL '1' DAY
+  `
+  )
+}
+
+/**
+ * Query hourly traffic buckets by event type for the last 24 hours
+ */
+async function queryTraffic(env: Env) {
+  return queryAnalyticsEngine(
+    env,
+    `
+    SELECT
+      toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS hour,
+      blob1 AS event_type,
+      SUM(_sample_interval) AS count
+    FROM \`dcw-soy\`
+    WHERE timestamp > NOW() - INTERVAL '1' DAY
+    GROUP BY hour, event_type
+    ORDER BY hour ASC
+  `
+  )
+}
+
+/**
+ * Query top 20 paths by hit count for the last 24 hours
+ */
+async function queryTopPaths(env: Env) {
+  return queryAnalyticsEngine(
+    env,
+    `
+    SELECT
+      index1 AS path,
+      blob1 AS event_type,
+      SUM(_sample_interval) AS hits,
+      SUM(_sample_interval * double2) / SUM(_sample_interval) AS avg_ms
+    FROM \`dcw-soy\`
+    WHERE timestamp > NOW() - INTERVAL '1' DAY
+    GROUP BY path, event_type
+    ORDER BY hits DESC
+    LIMIT 20
+  `
+  )
+}
+
+/**
+ * Query top 15 countries by request count for the last 24 hours
+ */
+async function queryCountries(env: Env) {
+  return queryAnalyticsEngine(
+    env,
+    `
+    SELECT
+      blob3 AS country,
+      SUM(_sample_interval) AS requests
+    FROM \`dcw-soy\`
+    WHERE timestamp > NOW() - INTERVAL '1' DAY
+      AND blob3 != 'unknown'
+    GROUP BY country
+    ORDER BY requests DESC
+    LIMIT 15
+  `
+  )
+}
+
+/**
+ * Query cache hit/miss counts for the last 24 hours
+ */
+async function queryCache(env: Env) {
+  return queryAnalyticsEngine(
+    env,
+    `
+    SELECT
+      blob4 AS cache_status,
+      SUM(_sample_interval) AS count
+    FROM \`dcw-soy\`
+    WHERE timestamp > NOW() - INTERVAL '1' DAY
+      AND blob4 != 'n/a'
+    GROUP BY cache_status
+  `
+  )
 }
