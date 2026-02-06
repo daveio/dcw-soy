@@ -1,5 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "dcw-soy"
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./public/"
