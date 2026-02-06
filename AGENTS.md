@@ -82,9 +82,9 @@ A browser-based dashboard at `/stats` backed by Worker API endpoints that query 
 | `/stats/api/countries` | Top 15 countries (last 24h)             | Countries table                                                    |
 | `/stats/api/cache`     | Cache hit/miss counts (last 24h)        | Cache performance doughnut chart                                   |
 
-#### Secrets Store Binding
+#### Secrets Store Bindings
 
-The worker uses a Secrets Store binding (`ANALYTICS_API_TOKEN`) to authenticate with the Cloudflare Analytics Engine SQL API. The token is fetched at runtime via `await env.ANALYTICS_API_TOKEN.get()`. The `ACCOUNT_ID` is a plain env var. Both are configured in `wrangler.jsonc` with TODO placeholders — replace with real values before deployment.
+Both `ANALYTICS_API_TOKEN` and `ACCOUNT_ID` are stored in Secrets Store and fetched at runtime via `await env.BINDING.get()`. They share the same store and are configured in `wrangler.jsonc` under `secrets_store_secrets`.
 
 ## Conventions & Patterns
 

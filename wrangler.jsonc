@@ -31,9 +31,11 @@
       "binding": "ANALYTICS_API_TOKEN",
       "store_id": "c38e38cf995f4db08a71c9b616169d33",
       "secret_name": "analytics_workers"
+    },
+    {
+      "binding": "ACCOUNT_ID",
+      "store_id": "c38e38cf995f4db08a71c9b616169d33",
+      "secret_name": "account-id"
     }
-  ],
-  "vars": {
-    "ACCOUNT_ID": "def50674a738cee409235f71819973cf"
-  }
+  ]
 }

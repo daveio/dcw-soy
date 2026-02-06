@@ -68,7 +68,7 @@ export default {
 
     // Stats API endpoints — must come before static asset check
     if (pathname.startsWith("/stats/api/")) {
-      return handleStatsApi(pathname, env)
+      return handleStatsApi(pathname, method, env)
     }
 
     // Serve static assets directly if they exist
@@ -324,9 +324,18 @@ async function serveNotFoundPage(request: Request, env: Env): Promise<Response> 
 
 // --- Stats API ---
 
+const STATS_API_HEADERS = {
+  "Content-Type": "application/json",
+  "Cache-Control": "public, max-age=30"
+} as const
+
+/**
+ * Query the Cloudflare Analytics Engine SQL API
+ */
 async function queryAnalyticsEngine(env: Env, sql: string): Promise<{ data: Record<string, unknown>[] }> {
   const token = await env.ANALYTICS_API_TOKEN.get()
-  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env.ACCOUNT_ID}/analytics_engine/sql`, {
+  const accountId = await env.ACCOUNT_ID.get()
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: sql
@@ -338,10 +347,15 @@ async function queryAnalyticsEngine(env: Env, sql: string): Promise<{ data: Reco
   return response.json()
 }
 
-async function handleStatsApi(pathname: string, env: Env): Promise<Response> {
-  const headers = {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-cache"
+/**
+ * Route and handle stats API endpoint requests
+ */
+async function handleStatsApi(pathname: string, method: string, env: Env): Promise<Response> {
+  if (method !== "GET" && method !== "HEAD") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...STATS_API_HEADERS, Allow: "GET, HEAD" }
+    })
   }
 
   try {
@@ -365,16 +379,22 @@ async function handleStatsApi(pathname: string, env: Env): Promise<Response> {
         result = await queryCache(env)
         break
       default:
-        return new Response(JSON.stringify({ error: "Unknown endpoint" }), { status: 404, headers })
+        return new Response(JSON.stringify({ error: "Unknown endpoint" }), { status: 404, headers: STATS_API_HEADERS })
     }
 
-    return new Response(JSON.stringify(result.data), { headers })
+    return new Response(JSON.stringify(result.data), { headers: STATS_API_HEADERS })
   } catch (error) {
     console.error("Stats API error:", error)
-    return new Response(JSON.stringify({ error: "Failed to query analytics" }), { status: 500, headers })
+    return new Response(JSON.stringify({ error: "Failed to query analytics" }), {
+      status: 500,
+      headers: STATS_API_HEADERS
+    })
   }
 }
 
+/**
+ * Query summary totals for the last 24 hours
+ */
 async function queryOverview(env: Env) {
   return queryAnalyticsEngine(
     env,
@@ -391,6 +411,9 @@ async function queryOverview(env: Env) {
   )
 }
 
+/**
+ * Query hourly traffic buckets by event type for the last 24 hours
+ */
 async function queryTraffic(env: Env) {
   return queryAnalyticsEngine(
     env,
@@ -407,6 +430,9 @@ async function queryTraffic(env: Env) {
   )
 }
 
+/**
+ * Query top 20 paths by hit count for the last 24 hours
+ */
 async function queryTopPaths(env: Env) {
   return queryAnalyticsEngine(
     env,
@@ -425,6 +451,9 @@ async function queryTopPaths(env: Env) {
   )
 }
 
+/**
+ * Query top 15 countries by request count for the last 24 hours
+ */
 async function queryCountries(env: Env) {
   return queryAnalyticsEngine(
     env,
@@ -442,6 +471,9 @@ async function queryCountries(env: Env) {
   )
 }
 
+/**
+ * Query cache hit/miss counts for the last 24 hours
+ */
 async function queryCache(env: Env) {
   return queryAnalyticsEngine(
     env,

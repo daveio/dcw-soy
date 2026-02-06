@@ -299,7 +299,19 @@
         container.appendChild(createEl("div", { class: "empty" }, "No data yet"));
       }
 
+      function showError(container) {
+        clearChildren(container);
+        container.appendChild(createEl("div", { class: "error" }, "Failed to load data"));
+      }
+
       function renderOverview(data) {
+        if (data === null) {
+          setText("totalRequests", "—");
+          setText("redirects", "—");
+          setText("notFound", "—");
+          setText("avgResponse", "—");
+          return;
+        }
         if (!data || !data.length) {
           setText("totalRequests", "0");
           setText("redirects", "0");
@@ -370,6 +382,10 @@
 
       function renderPathsTable(data) {
         const container = document.getElementById("pathsTable");
+        if (data === null) {
+          showError(container);
+          return;
+        }
         if (!data || !data.length) {
           showEmpty(container);
           return;
@@ -386,7 +402,8 @@
         const tbody = createEl("tbody");
         for (const row of data) {
           const tr = createEl("tr");
-          tr.appendChild(createEl("td", null, "/" + String(row.path)));
+          const p = String(row.path);
+          tr.appendChild(createEl("td", null, p.startsWith("/") ? p : "/" + p));
           const typeTd = createEl("td");
           const eventType = String(row.event_type);
           const badgeClass = VALID_EVENT_TYPES.has(eventType) ? "event-badge " + eventType : "event-badge";
@@ -442,6 +459,10 @@
 
       function renderCountriesTable(data) {
         const container = document.getElementById("countriesTable");
+        if (data === null) {
+          showError(container);
+          return;
+        }
         if (!data || !data.length) {
           showEmpty(container);
           return;
@@ -527,8 +548,11 @@
         updateTimestamp();
       }
 
-      fetchAll();
-      setInterval(fetchAll, 60000);
+      async function scheduleFetch() {
+        await fetchAll();
+        setTimeout(scheduleFetch, 60000);
+      }
+      scheduleFetch();
       setInterval(updateTimestamp, 1000);
     </script>
   </body>

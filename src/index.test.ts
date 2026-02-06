@@ -36,7 +36,9 @@ function createMockEnv(assetMap: AssetMap = {}) {
     ANALYTICS_API_TOKEN: {
       get: vi.fn(async () => "test-token")
     },
-    ACCOUNT_ID: "test-account-id",
+    ACCOUNT_ID: {
+      get: vi.fn(async () => "test-account-id")
+    },
     ASSETS: {
       fetch: createAssetsFetch(assetMap),
       connect: vi.fn()
@@ -368,5 +370,19 @@ describe("stats API", () => {
       )
       expect(response.status).toBe(200)
     }
+  })
+
+  it("returns 405 for non-GET methods", async () => {
+    const { env } = createMockEnv()
+    const response = await handler.fetch(
+      new Request("https://dcw.soy/stats/api/overview", { method: "POST" }),
+      env,
+      createExecutionContext()
+    )
+
+    expect(response.status).toBe(405)
+    const body = await response.json()
+    expect(body).toHaveProperty("error", "Method not allowed")
+    expect(response.headers.get("Allow")).toBe("GET, HEAD")
   })
 })

@@ -10,7 +10,7 @@ declare namespace Cloudflare {
     ANALYTICS: AnalyticsEngineDataset;
     ANALYTICS_API_TOKEN: SecretsStoreSecret;
     ASSETS: Fetcher;
-    ACCOUNT_ID: "def50674a738cee409235f71819973cf";
+    ACCOUNT_ID: SecretsStoreSecret;
   }
 }
 interface Env extends Cloudflare.Env {}
