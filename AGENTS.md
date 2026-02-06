@@ -64,6 +64,28 @@ The entry point for the worker.
 
 Contains unit tests mocking the Worker environment (`Env`, `KV`, `ASSETS`, `ExecutionContext`).
 
+### `/stats` Analytics Dashboard
+
+A browser-based dashboard at `/stats` backed by Worker API endpoints that query Analytics Engine via the SQL API. The browser never touches the Cloudflare API directly.
+
+- **Dashboard page**: `public/stats/index.html` — single HTML file with Chart.js, dark theme, auto-refresh every 60s.
+- **API routing**: `/stats/api/*` routes are handled in the `fetch` handler _before_ the static asset check, so they don't fall through to the redirect handler.
+- **No analytics pollution**: Stats API requests do not write `writeDataPoint` events — they're internal dashboard calls.
+
+#### Stats API Endpoints
+
+| Endpoint               | Query                                   | Purpose                                                            |
+| ---------------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| `/stats/api/overview`  | Summary totals (last 24h)               | Overview cards: total requests, redirects, 404s, avg response time |
+| `/stats/api/traffic`   | Hourly buckets by event type (last 24h) | Stacked line chart of traffic over time                            |
+| `/stats/api/paths`     | Top 20 paths by hits (last 24h)         | Paths table + event type doughnut chart                            |
+| `/stats/api/countries` | Top 15 countries (last 24h)             | Countries table                                                    |
+| `/stats/api/cache`     | Cache hit/miss counts (last 24h)        | Cache performance doughnut chart                                   |
+
+#### Secrets Store Binding
+
+The worker uses a Secrets Store binding (`ANALYTICS_API_TOKEN`) to authenticate with the Cloudflare Analytics Engine SQL API. The token is fetched at runtime via `await env.ANALYTICS_API_TOKEN.get()`. The `ACCOUNT_ID` is a plain env var. Both are configured in `wrangler.jsonc` with TODO placeholders — replace with real values before deployment.
+
 ## Conventions & Patterns
 
 - **Formatting**: Strict usage of Biome and Prettier. Always run `bun run lint:format` after changes.

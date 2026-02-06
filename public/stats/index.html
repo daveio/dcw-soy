@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dcw.soy — analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #2a2a4a;
+      }
+
+      header h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #a78bfa;
+      }
+
+      header h1 a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header h1 a:hover {
+        text-decoration: underline;
+      }
+
+      .meta {
+        font-size: 0.75rem;
+        color: #888;
+      }
+
+      .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .card {
+        background: #16213e;
+        border-radius: 8px;
+        padding: 1.25rem;
+        border: 1px solid #2a2a4a;
+      }
+
+      .card-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+        margin-bottom: 0.5rem;
+      }
+
+      .card-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .chart-row {
+        margin-bottom: 1.5rem;
+      }
+
+      .chart-card {
+        background: #16213e;
+        border-radius: 8px;
+        padding: 1.25rem;
+        border: 1px solid #2a2a4a;
+      }
+
+      .chart-card h2 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #ccc;
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+
+      th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #2a2a4a;
+        color: #888;
+        font-weight: 500;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      td {
+        padding: 0.4rem 0.75rem;
+        border-bottom: 1px solid #1a1a2e;
+      }
+
+      tr:hover td {
+        background: #1a2640;
+      }
+
+      .event-badge {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+
+      .event-badge.static_root {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+      }
+
+      .event-badge.static_asset {
+        background: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
+      }
+
+      .event-badge.redirect {
+        background: rgba(167, 139, 250, 0.15);
+        color: #a78bfa;
+      }
+
+      .event-badge.redirect_fallback {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+
+      .event-badge.not_found {
+        background: rgba(248, 113, 113, 0.15);
+        color: #f87171;
+      }
+
+      .doughnut-container {
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+        font-size: 0.85rem;
+      }
+
+      .error {
+        text-align: center;
+        padding: 1rem;
+        color: #f87171;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 768px) {
+        .overview-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .bottom-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .overview-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">dcw.soy</a> — analytics</h1>
+      <div class="meta">
+        <span id="lastUpdated">Loading...</span>
+      </div>
+    </header>
+
+    <div class="overview-grid" id="overviewGrid">
+      <div class="card">
+        <div class="card-label">Total Requests</div>
+        <div class="card-value" id="totalRequests">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Redirects</div>
+        <div class="card-value" id="redirects">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">404s</div>
+        <div class="card-value" id="notFound">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Avg Response</div>
+        <div class="card-value" id="avgResponse">—</div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <h2>Traffic — last 24 hours</h2>
+        <canvas id="trafficChart" height="80"></canvas>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="chart-card">
+        <h2>Top Paths</h2>
+        <div id="pathsTable"></div>
+      </div>
+      <div class="chart-card">
+        <h2>Event Types</h2>
+        <div class="doughnut-container">
+          <canvas id="eventChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="chart-card">
+        <h2>Countries</h2>
+        <div id="countriesTable"></div>
+      </div>
+      <div class="chart-card">
+        <h2>Cache Performance</h2>
+        <div class="doughnut-container">
+          <canvas id="cacheChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const fmt = new Intl.NumberFormat("en-US");
+      const EVENT_COLORS = {
+        static_root: "#4ade80",
+        static_asset: "#60a5fa",
+        redirect: "#a78bfa",
+        redirect_fallback: "#fbbf24",
+        not_found: "#f87171",
+      };
+      const CACHE_COLORS = { hit: "#4ade80", miss: "#f87171" };
+      const VALID_EVENT_TYPES = new Set(Object.keys(EVENT_COLORS));
+      const VALID_CACHE_STATUSES = new Set(Object.keys(CACHE_COLORS));
+
+      let trafficChart = null;
+      let eventChart = null;
+      let cacheChart = null;
+      let lastFetchTime = null;
+
+      function fmtMs(v) {
+        return v != null ? Number(v).toFixed(1) + "ms" : "—";
+      }
+
+      function setText(id, text) {
+        document.getElementById(id).textContent = text;
+      }
+
+      function clearChildren(el) {
+        while (el.firstChild) el.removeChild(el.firstChild);
+      }
+
+      function createEl(tag, attrs, text) {
+        const el = document.createElement(tag);
+        if (attrs) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+        if (text != null) el.textContent = String(text);
+        return el;
+      }
+
+      function showEmpty(container) {
+        clearChildren(container);
+        container.appendChild(createEl("div", { class: "empty" }, "No data yet"));
+      }
+
+      function renderOverview(data) {
+        if (!data || !data.length) {
+          setText("totalRequests", "0");
+          setText("redirects", "0");
+          setText("notFound", "0");
+          setText("avgResponse", "—");
+          return;
+        }
+        const d = data[0];
+        setText("totalRequests", fmt.format(Math.round(d.total_requests || 0)));
+        setText("redirects", fmt.format(Math.round(d.redirects || 0)));
+        setText("notFound", fmt.format(Math.round(d.not_found || 0)));
+        setText("avgResponse", fmtMs(d.avg_response_ms));
+      }
+
+      function renderTrafficChart(data) {
+        const canvas = document.getElementById("trafficChart");
+        if (!data || !data.length) {
+          if (trafficChart) trafficChart.destroy();
+          trafficChart = null;
+          return;
+        }
+
+        const hours = [...new Set(data.map((d) => d.hour))].sort();
+        const types = [...new Set(data.map((d) => d.event_type))];
+        const byHourType = {};
+        for (const row of data) {
+          const key = row.hour + "|" + row.event_type;
+          byHourType[key] = (byHourType[key] || 0) + Number(row.count);
+        }
+
+        const datasets = types.map((t) => ({
+          label: t,
+          data: hours.map((h) => byHourType[h + "|" + t] || 0),
+          borderColor: EVENT_COLORS[t] || "#888",
+          backgroundColor: (EVENT_COLORS[t] || "#888") + "33",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+        }));
+
+        const labels = hours.map((h) => {
+          const d = new Date(h);
+          return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        });
+
+        if (trafficChart) trafficChart.destroy();
+        trafficChart = new Chart(canvas, {
+          type: "line",
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+              x: { ticks: { color: "#666" }, grid: { color: "#2a2a4a" } },
+              y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { color: "#666" },
+                grid: { color: "#2a2a4a" },
+              },
+            },
+            plugins: {
+              legend: { labels: { color: "#aaa", boxWidth: 12, padding: 16 } },
+            },
+          },
+        });
+      }
+
+      function renderPathsTable(data) {
+        const container = document.getElementById("pathsTable");
+        if (!data || !data.length) {
+          showEmpty(container);
+          return;
+        }
+        clearChildren(container);
+        const table = createEl("table");
+        const thead = createEl("thead");
+        const headerRow = createEl("tr");
+        for (const h of ["Path", "Type", "Hits", "Avg ms"]) {
+          headerRow.appendChild(createEl("th", null, h));
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = createEl("tbody");
+        for (const row of data) {
+          const tr = createEl("tr");
+          tr.appendChild(createEl("td", null, "/" + String(row.path)));
+          const typeTd = createEl("td");
+          const eventType = String(row.event_type);
+          const badgeClass = VALID_EVENT_TYPES.has(eventType) ? "event-badge " + eventType : "event-badge";
+          typeTd.appendChild(createEl("span", { class: badgeClass }, eventType));
+          tr.appendChild(typeTd);
+          tr.appendChild(createEl("td", null, fmt.format(Math.round(row.hits))));
+          tr.appendChild(createEl("td", null, fmtMs(row.avg_ms)));
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        container.appendChild(table);
+      }
+
+      function renderEventChart(data) {
+        const canvas = document.getElementById("eventChart");
+        if (!data || !data.length) {
+          return;
+        }
+
+        const agg = {};
+        for (const row of data) {
+          const t = String(row.event_type);
+          agg[t] = (agg[t] || 0) + Number(row.hits);
+        }
+        const labels = Object.keys(agg);
+        const values = Object.values(agg);
+        const colors = labels.map((l) => EVENT_COLORS[l] || "#888");
+
+        if (eventChart) eventChart.destroy();
+        eventChart = new Chart(canvas, {
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                backgroundColor: colors,
+                borderColor: "#16213e",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#aaa", boxWidth: 10, padding: 12 },
+              },
+            },
+          },
+        });
+      }
+
+      function renderCountriesTable(data) {
+        const container = document.getElementById("countriesTable");
+        if (!data || !data.length) {
+          showEmpty(container);
+          return;
+        }
+        clearChildren(container);
+        const table = createEl("table");
+        const thead = createEl("thead");
+        const headerRow = createEl("tr");
+        for (const h of ["Country", "Requests"]) {
+          headerRow.appendChild(createEl("th", null, h));
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = createEl("tbody");
+        for (const row of data) {
+          const tr = createEl("tr");
+          tr.appendChild(createEl("td", null, String(row.country)));
+          tr.appendChild(createEl("td", null, fmt.format(Math.round(row.requests))));
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        container.appendChild(table);
+      }
+
+      function renderCacheChart(data) {
+        const canvas = document.getElementById("cacheChart");
+        if (!data || !data.length) {
+          return;
+        }
+
+        const labels = data.map((d) => String(d.cache_status));
+        const values = data.map((d) => Number(d.count));
+        const colors = labels.map((l) => CACHE_COLORS[l] || "#888");
+
+        if (cacheChart) cacheChart.destroy();
+        cacheChart = new Chart(canvas, {
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                backgroundColor: colors,
+                borderColor: "#16213e",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { color: "#aaa", boxWidth: 10, padding: 12 },
+              },
+            },
+          },
+        });
+      }
+
+      function updateTimestamp() {
+        if (!lastFetchTime) return;
+        const ago = Math.round((Date.now() - lastFetchTime) / 1000);
+        setText("lastUpdated", "Updated " + ago + "s ago \u00b7 auto-refresh 60s");
+      }
+
+      async function fetchAll() {
+        const endpoints = ["overview", "traffic", "paths", "countries", "cache"];
+        const results = await Promise.all(
+          endpoints.map((e) =>
+            fetch("/stats/api/" + e)
+              .then((r) => r.json())
+              .catch(() => null),
+          ),
+        );
+
+        lastFetchTime = Date.now();
+        renderOverview(results[0]);
+        renderTrafficChart(results[1]);
+        renderPathsTable(results[2]);
+        renderEventChart(results[2]);
+        renderCountriesTable(results[3]);
+        renderCacheChart(results[4]);
+        updateTimestamp();
+      }
+
+      fetchAll();
+      setInterval(fetchAll, 60000);
+      setInterval(updateTimestamp, 1000);
+    </script>
+  </body>
+</html>

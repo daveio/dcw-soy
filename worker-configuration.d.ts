@@ -8,6 +8,8 @@ declare namespace Cloudflare {
   interface Env {
     KV: KVNamespace;
     ANALYTICS: AnalyticsEngineDataset;
+    ANALYTICS_API_TOKEN: { get(): Promise<string> };
+    ACCOUNT_ID: string;
     ASSETS: Fetcher;
   }
 }
