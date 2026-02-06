@@ -5,13 +5,11 @@
 > [!TIP]
 > This codebase has documentation for AI agents.
 >
-> See [`.github/copilot-instructions.md`](.github/copilot-instructions.md).
->
-> [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) symlink to this file.
+> [`AGENTS.md`](AGENTS.md) is the authoritative reference. [`CLAUDE.md`](CLAUDE.md) symlinks to it.
 
 ## 🌟 Overview
 
-`dcw-soy` is a Cloudflare Workers application that serves a delightful soy sauce bottle animation website. Beyond the playful frontend, it includes a sophisticated redirect system with intelligent caching using Cloudflare KV storage.
+`dcw-soy` is a Cloudflare Workers application that serves a delightful soy sauce bottle animation website. Beyond the playful frontend, it includes a sophisticated redirect system with intelligent caching using Cloudflare KV storage, and an analytics dashboard powered by Cloudflare Analytics Engine.
 
 ## 🛠️ Development
 
@@ -69,11 +67,15 @@ bun run deploy:nonprod
 1. **Static Assets Handler**: Serves the main soy bottle animation from `/public`
 2. **Redirect System**: Validates and handles redirects to `dave.io/go/*` paths
 3. **KV Caching**: Implements intelligent caching with TTL and refresh locking
-4. **404 Handler**: Custom not-found page for invalid redirect paths
+4. **Analytics Engine**: Tracks every request (event type, path, country, cache status, response time)
+5. **Stats Dashboard** (`/stats`): Browser-based analytics dashboard with Chart.js
+6. **404 Handler**: Custom not-found page for invalid redirect paths
 
 ### How It Works
 
 - **Root path** (`/`) → Serves the animated soy bottle site
+- **`/stats`** → Analytics dashboard (Chart.js, dark theme, auto-refresh every 60s)
+- **`/stats/api/*`** → JSON API endpoints querying Analytics Engine (overview, traffic, paths, countries, cache)
 - **Other paths** → Validates against cached redirects → Either redirects to dave.io or shows 404
 - **Cache refresh** happens asynchronously without blocking requests
 - **Fallback behavior**: If validation fails, redirects anyway and lets dave.io handle it
@@ -82,12 +84,20 @@ bun run deploy:nonprod
 
 ```plaintext
 ├── src/
-│   └── index.ts          # Main Worker with redirect logic & caching
+│   ├── index.ts          # Main Worker: redirects, analytics, stats API
+│   └── index.test.ts     # Vitest unit tests
 ├── public/
 │   ├── index.html        # Main site with animations
 │   ├── not-found.html    # 404 not found page
+│   ├── stats/
+│   │   └── index.html    # Analytics dashboard (Chart.js)
 │   ├── soy.webp          # Soy sauce bottle image
 │   └── duck.webp         # A duck, used by dave.io integration tests
+├── .github/workflows/
+│   ├── ci.yaml           # CI pipeline
+│   ├── claude.yml        # Claude AI PR assistant
+│   ├── claude-code-review.yml  # Claude AI code review
+│   └── devskim.yaml      # DevSkim security scanning
 ├── wrangler.jsonc        # Cloudflare Workers configuration
 ├── tsconfig.json         # TypeScript configuration
 ├── biome.json            # Biome linter configuration
@@ -102,6 +112,8 @@ bun run deploy:nonprod
 - **Performance Optimized**: Lightweight static assets served via Cloudflare Workers
 - **Smart Caching**: KV-based redirect validation with automatic refresh
 - **Race Condition Prevention**: Lock mechanism ensures cache consistency
+- **Analytics Dashboard**: Real-time traffic, paths, countries, and cache performance at `/stats`
+- **CI/CD**: Claude AI code review and PR assistant via GitHub Actions
 
 ## 📝 License
 

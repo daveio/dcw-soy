@@ -405,7 +405,7 @@ async function queryOverview(env: Env) {
       SUM(IF(blob1 = 'not_found', _sample_interval, 0)) AS not_found,
       SUM(IF(blob1 = 'static_root' OR blob1 = 'static_asset', _sample_interval, 0)) AS static_served,
       SUM(_sample_interval * double2) / SUM(_sample_interval) AS avg_response_ms
-    FROM \`dcw-soy\`
+    FROM "dcw-soy"
     WHERE timestamp > NOW() - INTERVAL '1' DAY
   `
   )
@@ -422,7 +422,7 @@ async function queryTraffic(env: Env) {
       toStartOfInterval(timestamp, INTERVAL '1' HOUR) AS hour,
       blob1 AS event_type,
       SUM(_sample_interval) AS count
-    FROM \`dcw-soy\`
+    FROM "dcw-soy"
     WHERE timestamp > NOW() - INTERVAL '1' DAY
     GROUP BY hour, event_type
     ORDER BY hour ASC
@@ -442,7 +442,7 @@ async function queryTopPaths(env: Env) {
       blob1 AS event_type,
       SUM(_sample_interval) AS hits,
       SUM(_sample_interval * double2) / SUM(_sample_interval) AS avg_ms
-    FROM \`dcw-soy\`
+    FROM "dcw-soy"
     WHERE timestamp > NOW() - INTERVAL '1' DAY
     GROUP BY path, event_type
     ORDER BY hits DESC
@@ -461,7 +461,7 @@ async function queryCountries(env: Env) {
     SELECT
       blob3 AS country,
       SUM(_sample_interval) AS requests
-    FROM \`dcw-soy\`
+    FROM "dcw-soy"
     WHERE timestamp > NOW() - INTERVAL '1' DAY
       AND blob3 != 'unknown'
     GROUP BY country
@@ -481,7 +481,7 @@ async function queryCache(env: Env) {
     SELECT
       blob4 AS cache_status,
       SUM(_sample_interval) AS count
-    FROM \`dcw-soy\`
+    FROM "dcw-soy"
     WHERE timestamp > NOW() - INTERVAL '1' DAY
       AND blob4 != 'n/a'
     GROUP BY cache_status

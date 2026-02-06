@@ -6,17 +6,19 @@
 
 **dcw-soy** is a Cloudflare Worker service built with TypeScript. It acts as a redirect handler and static site server.
 
-- **Primary Function**: Serves static assets from `public/` and handles URL redirects by checking against a list fetched from `dave.io`.
+- **Primary Function**: Serves static assets from `public/`, handles URL redirects by checking against a list fetched from `dave.io`, and provides an analytics dashboard at `/stats`.
 - **Runtime**: Cloudflare Workers.
 - **Package Manager**: [Bun](https://bun.sh/).
 - **Testing**: Vitest with `@cloudflare/vitest-pool-workers`.
 - **Tooling**: Biome, Trunk, Prettier.
+- **CI/CD**: GitHub Actions — Claude code review (`claude-code-review.yml`) and Claude PR assistant (`claude.yml`).
 
 ## Environment & Setup
 
 - **Tool Management**: Uses [mise](https://mise.jdx.dev/) for managing `bun` and `node` versions.
 - **Configuration**:
-  - `wrangler.jsonc`: Main Cloudflare Worker config.
+  - `wrangler.jsonc`: Main Cloudflare Worker config (bindings, KV, Analytics Engine, Secrets Store).
+  - `worker-configuration.d.ts`: Auto-generated TypeScript types for the `Env` interface (run `bun run cf-typegen` to regenerate).
   - `mise.toml`: Tool version definitions.
   - `package.json`: Scripts and dependencies.
   - `vitest.config.ts`: Test configuration.
@@ -41,9 +43,11 @@ Always use `bun run` for scripts.
 The entry point for the worker.
 
 - **`fetch` handler**:
-  1. Checks if request is for root (`/`) -> serves from `env.ASSETS`.
-  2. Checks if request matches a static asset -> serves from `env.ASSETS`.
-  3. Calls `handleRedirect` for all other paths.
+  1. Routes `/stats/api/*` requests to `handleStatsApi` (Analytics Engine queries).
+  2. Checks if request is for root (`/`) -> serves from `env.ASSETS`.
+  3. Checks if request matches a static asset -> serves from `env.ASSETS`.
+  4. Calls `handleRedirect` for all other paths.
+  5. Writes an Analytics Engine data point via `writeDataPoint` for every non-stats request.
 - **`handleRedirect`**:
   - Checks KV cache for valid redirects.
   - If cache miss, fetches from `https://dave.io/api/redirects`.
@@ -94,9 +98,31 @@ Both `ANALYTICS_API_TOKEN` and `ACCOUNT_ID` are stored in Secrets Store and fetc
 - **Error Handling**: Fail gracefully. If redirect fetch fails or returns invalid data, the worker attempts to redirect anyway (optimistic fallback).
 - **User Agent**: The worker identifies itself as "THERE IS NO USER AGENT. THERE IS ONLY SOY." when fetching upstream data.
 
+### Analytics Data Model
+
+Each non-stats request writes an Analytics Engine data point with:
+
+| Field     | Content                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------- |
+| `blob1`   | Event type (`redirect`, `not_found`, `static_root`, `static_asset`, `redirect_fallback`) |
+| `blob2`   | HTTP method (`GET`, `HEAD`, etc.)                                                        |
+| `blob3`   | Country (from `cf-ipcountry` header)                                                     |
+| `blob4`   | Cache status (`hit`, `miss`, `n/a`)                                                      |
+| `double1` | HTTP status code                                                                         |
+| `double2` | Response time in milliseconds                                                            |
+| `index1`  | URL path                                                                                 |
+
+## CI/CD
+
+- **`ci.yaml`**: Standard CI pipeline.
+- **`devskim.yaml`**: DevSkim security scanning.
+- **`claude-code-review.yml`**: Claude AI code review on PRs.
+- **`claude.yml`**: Claude AI PR assistant.
+
 ## Gotchas
 
 - **Asset Binding**: The worker relies on `env.ASSETS` (Cloudflare Pages/Workers Assets) to serve static files. Tests mock this behavior.
 - **KV Mocking**: Tests use a `Map`-based mock for KV storage.
 - **Locking**: Be aware of the `refreshCacheWithLock` mechanism when modifying cache logic.
 - **Redirect Fallback**: If `getValidRedirects` returns `null` (error state), the code defaults to redirecting to `dave.io` assuming the path might handle it there.
+- **Analytics Engine SQL Dialect**: The SQL API uses ClickHouse-compatible syntax. Table names with special characters (like `dcw-soy`) must use **double quotes** (`"dcw-soy"`), not backticks. Backticks cause a 422 parse error.
