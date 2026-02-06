@@ -47,7 +47,7 @@ export default {
     const { pathname }: { pathname: string } = url
     const analyticsPath = pathname.startsWith("/") ? pathname.substring(1) : pathname
     const country: string = String(request.cf?.country ?? "unknown")
-    const method = request.method
+    const { method } = request
 
     // Serve static site for root paths
     // run_worker_first is enabled, so the worker handles all requests
@@ -160,14 +160,18 @@ interface RedirectsResult {
 }
 
 interface RedirectsApiResponse {
-  ok: boolean
-  result: RedirectsResult
-  message: string
-  error: null | string
-  status: {
-    message: string
+  code: number
+  data: string[]
+  request: {
+    method: string
+    path: string
+    url: string
+    headers: {
+      [key: string]: string
+    }
   }
-  timestamp: string
+  query: object | null
+  params: object | null
 }
 
 /**
@@ -186,8 +190,9 @@ async function fetchValidRedirects(): Promise<string[] | null> {
       throw new Error(`Failed to fetch redirects: ${response.status}`)
     }
 
-    const data: RedirectsApiResponse = await response.json()
-    const redirects = data?.result?.redirects
+    const resp: RedirectsApiResponse = await response.json()
+
+    const redirects: string[] = resp?.data || []
 
     if (!Array.isArray(redirects)) {
       throw new Error("Invalid response format from redirects endpoint")
