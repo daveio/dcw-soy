@@ -15,11 +15,11 @@
     "wrangler": "^4.65.0"
   },
   "engines": {
-    "bun": "^1.3.9",
+    "bun": "^1.3.11",
     "node": "^24.13.1"
   },
   "name": "dcw-soy",
-  "packageManager": "bun@1.3.9",
+  "packageManager": "bun@1.3.11",
   "private": true,
   "scripts": {
     "cf-typegen": "bun run wrangler types",
